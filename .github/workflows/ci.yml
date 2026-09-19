@@ -1,8 +1,9 @@
 name: CI
+# Pull requests only: a push to a PR branch already fires pull_request, so also listening to push ran the gate twice.
+# main is covered by the Deploy workflow, which runs the same gate before it publishes.
 on:
   pull_request:
-  push:
-    branches-ignore: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
