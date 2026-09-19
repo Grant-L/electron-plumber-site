@@ -1,0 +1,13 @@
+# One [[episode]] per announced episode. Everything in this file is public, so add an episode
+# only when its title may be public, and fill in the rest at publish time.
+#
+# status = "in-production": shown as "Next" with its title only (no arc, no badge). No page is built for it.
+# status = "published":     needs arc (historical | speculative | practical), youtube_id, date (YYYY-MM-DD), excerpt, and the handout at
+#                           content/episodes/<slug>.md (the same file as lectures/epNNN.md in
+#                           the notes repo). The build refuses a published episode without one.
+
+[[episode]]
+number = 1
+slug = "001-what-is-an-electron"
+title = "What is an Electron?"
+status = "in-production"

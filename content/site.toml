@@ -1,0 +1,14 @@
+# Site-wide settings. Everything in this file is public.
+title = "The Electron Plumber"
+author = "Grant Lindblom"
+tagline = "I plumb electrons for a living, I just want to know what they ARE"
+url = "https://electron-plumber.com"
+youtube = "https://www.youtube.com/@TheElectronPlumber"
+notes_repo = "https://github.com/Grant-L/electron-plumber-notes"
+core_repo = "https://github.com/ave-veritas-et-enodatio/AVE-Core"
+
+# A public address for the About page. Empty hides the email route.
+contact_email = "grant@electron-plumber.com"
+
+# The form endpoint of a newsletter provider. Empty shows the YouTube and GitHub routes instead of an email field.
+newsletter_action = ""

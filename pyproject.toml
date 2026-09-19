@@ -1,0 +1,24 @@
+[project]
+name = "electron-plumber-site"
+version = "0.1.0"
+description = "Source of electron-plumber.com"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 150
+exclude = ["_private", "_site", "_site_drafts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# HTML templates read better as long lines than as chopped-up strings.
+"sitegen/pages.py" = ["E501"]
+"sitegen/html.py" = ["E501"]
+"build.py" = ["E501"]
+"tests/*" = ["E501"]
+"design/make_mark.py" = ["E501", "E702"]

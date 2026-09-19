@@ -1,0 +1,12 @@
+# build output: reproducible, never committed
+_site/
+_site_drafts/
+
+# planning notes, unpublished handouts and anything else that must not ship from a public repo
+_private/
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store

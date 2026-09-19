@@ -1,0 +1,30 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install pytest "ruff==0.15.12"
+      - run: ruff check .
+      - run: python -m pytest -q
+      - run: make check
+        env:
+          # Not available to pull requests from forks; check.py then warns and skips that one rule.
+          FORBIDDEN_TERMS: ${{ secrets.FORBIDDEN_TERMS }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: site-preview
+          path: _site
+          retention-days: 7
