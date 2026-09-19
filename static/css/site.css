@@ -1,9 +1,8 @@
 /* electron-plumber.com
  *
- * Colors mirror the channel's animation theme (Okabe-Ito accents on a dark
- * ground). Roles: orange = the object under discussion, sky = the instrument
- * and references, green = verified, vermillion = what breaks, yellow =
- * annotations only. The neutrals marked "web" exist only here.
+ * Colors: Okabe-Ito accents on a dark ground. On this site: orange = buttons, the next episode and the
+ * Speculative label; sky = links, rules, kickers and the Historical label; green = the Practical label;
+ * vermillion = excluded results; yellow = defined, not used. The neutrals marked "web" exist only here.
  */
 :root {
   --bg: #0e1116;

@@ -16,7 +16,7 @@ make test       # unit tests (pytest)
 |---|---|
 | `content/site.toml` | Site-wide settings: links, tagline, contact address, newsletter endpoint. |
 | `content/episodes.toml` | One entry per announced episode. Status drives everything the site says about it. |
-| `content/episodes/*.md` | Handouts for **published** episodes: the same file as `lectures/epNNN.md` in the [notes repo](https://github.com/Grant-L/electron-plumber-notes). |
+| `content/episodes/*.md` | Episode notes for **published** episodes: the same file that is published in the [notes repo](https://github.com/Grant-L/electron-plumber-notes). |
 | `sitegen/` | Templates (`pages.py`), shared components (`html.py`), content loading and rules (`content.py`), a small Markdown subset (`md.py`). |
 | `static/` | CSS, the one script, images, favicons. Copied to the site root as is. |
 | `build.py`, `check.py` | Build into `_site/`; gate the result. |

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gate for the built site. Fails loudly, because silent rot is what kills a site like this.
+"""Gate for the built site. Prints every problem it finds and exits 1 if there are any.
 
     python3 check.py [_site] [--drafts]
 

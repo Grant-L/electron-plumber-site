@@ -15,8 +15,8 @@ def test_raw_html_is_escaped_never_passed_through():
 
 
 def test_relative_links_point_at_the_notes_repo():
-    out = md.inline("[sim](ep001-sims/net.asc) and [abs](https://a.b/c) and [anchor](#x)", link_base="https://h/lectures")
-    assert 'href="https://h/lectures/ep001-sims/net.asc"' in out
+    out = md.inline("[sim](ep001-sims/net.asc) and [abs](https://a.b/c) and [anchor](#x)", link_base="https://h/notes")
+    assert 'href="https://h/notes/ep001-sims/net.asc"' in out
     assert 'href="https://a.b/c"' in out and 'href="#x"' in out
 
 
@@ -55,8 +55,8 @@ def test_urls_survive_the_text_passes():
 
 
 def test_dot_slash_is_a_prefix_not_a_character_set():
-    out = md.inline("[a](./.hidden/file) and [b](../sources.bib)", link_base="https://h/lectures")
-    assert 'href="https://h/lectures/.hidden/file"' in out and 'href="https://h/lectures/../sources.bib"' in out
+    out = md.inline("[a](./.hidden/file) and [b](../sources.bib)", link_base="https://h/notes")
+    assert 'href="https://h/notes/.hidden/file"' in out and 'href="https://h/notes/../sources.bib"' in out
 
 
 def test_ordered_lists_keep_their_first_number_and_lists_may_interrupt_a_paragraph():

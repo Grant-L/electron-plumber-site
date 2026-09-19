@@ -1,14 +1,12 @@
-"""Web cuts of the channel mark (Smith chart + flat (2,3) trefoil).
+"""Draws the web versions of the channel logo.
 
     python3 design/make_mark.py     (needs matplotlib)
 
 Writes the SVG and PNG sources into design/mark/, and the favicons into static/.
 
-Geometry:
-rim |G|=1, real axis, r=1 circle (centre 1/2, radius 1/2), x=+-1 arcs
-(centres 1+-j, radius 1), torus shadow |G|=(R-r)/(R+r)=1/3, and the trefoil
-rho(t) = (R + r cos 3t)/(R + r), theta = 2t with R=2/3, r=1/3.
-Stroke widths are given as stroke / radius, so every cut scales cleanly.
+Geometry: a Smith chart (rim |G|=1, real axis, r=1 circle, x=+-1 arcs), an inner circle at |G|=1/3, and a
+three-lobed closed curve rho(t) = (2 + cos 3t)/3, theta = 2t. Stroke widths are given as stroke / radius,
+so every size scales cleanly.
 """
 import math
 from pathlib import Path

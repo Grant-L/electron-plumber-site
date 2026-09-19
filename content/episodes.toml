@@ -3,7 +3,7 @@
 #
 # status = "in-production": shown as "Next" with its title only (no arc, no badge). No page is built for it.
 # status = "published":     needs arc (historical | speculative | practical), youtube_id, date (YYYY-MM-DD), excerpt, and the handout at
-#                           content/episodes/<slug>.md (the same file as lectures/epNNN.md in
+#                           content/episodes/<slug>.md (the same file as the published episode notes in
 #                           the notes repo). The build refuses a published episode without one.
 
 [[episode]]
