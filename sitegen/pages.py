@@ -99,7 +99,7 @@ def home(ctx: Ctx):
     records_row = row(RECORDS[0], (
         '<h2 class="h2">Spotted an error? Open an issue.</h2><div class="grid grid--3 g40">'
         + record("Sources", "Every citation made on camera lives in one public BibTeX file.")
-        + record("Corrections", "When I get something wrong it goes on a public ledger. Standing corrections for all episodes will be tracked in ERRATA.md.")
+        + record("Corrections", "When I get something wrong it goes on a public ledger. Standing corrections for all episodes are tracked in ERRATA.md.")
         + record("Notes", "Learning goals, episode notes, readings, and standing corrections for each episode.")
         + f'</div><div class="g36">{arrow("See the " + RECORDS[0].lower(), ctx.to(RECORDS[1]))}</div>'))
 
@@ -166,7 +166,7 @@ def episode(ctx: Ctx, ep):
         have.add(anchor)
         blocks += f'<section class="block" id="{esc(anchor)}"><h2>{esc(title)}</h2>{body}</section>'
     if "corrections" not in have:
-        blocks += ('<section class="block" id="corrections"><h2>Corrections</h2><p>Standing corrections for all episodes will be tracked in ERRATA.md. '
+        blocks += ('<section class="block" id="corrections"><h2>Corrections</h2><p>Standing corrections for all episodes are tracked in ERRATA.md. '
                    'Spotted an error? Open an issue &mdash; corrections are part of the product here, not an embarrassment.</p></section>')
     report = f'<div class="g8">{arrow("Report an error", ctx.site["notes_repo"] + "/issues", external=True)}</div>'
     article = f'<article class="article">{blocks}{report}<div class="g48"></div></article>'

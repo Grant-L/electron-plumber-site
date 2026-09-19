@@ -52,7 +52,7 @@ def build(out: Path, drafts: bool = False):
 
     redirects = {
         "notes": site["notes_repo"],
-        "errata": site["notes_repo"] + "#corrections",  # switch to /blob/main/ERRATA.md once the notes repo has that file
+        "errata": site["notes_repo"] + "/blob/main/ERRATA.md",
         "code": site["core_repo"],
         "letter": site["core_repo"] + "/blob/main/papers/2026_birefringence_letter/sve_vacuum_birefringence_letter.pdf",
         "yt": site["youtube"],
