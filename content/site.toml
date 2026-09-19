@@ -7,6 +7,9 @@ youtube = "https://www.youtube.com/@TheElectronPlumber"
 notes_repo = "https://github.com/Grant-L/electron-plumber-notes"
 core_repo = "https://github.com/ave-veritas-et-enodatio/AVE-Core"
 
+# Folder in the notes repo that holds the published episode notes. Relative links inside a handout resolve against it.
+notes_path = "lectures"
+
 # A public address for the About page. Empty hides the email route.
 contact_email = "grant@electron-plumber.com"
 

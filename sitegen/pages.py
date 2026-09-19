@@ -47,7 +47,7 @@ def home(ctx: Ctx):
 
     hero = (f'<div class="band" style="background-image: url({ctx.to("img/field-bed.png")});">'
             f'<img src="{ctx.to("img/mark-banner-halo.svg")}" width="236" height="236" '
-            f'alt="The Electron Plumber mark: a Smith chart holding a trefoil curve"></div>'
+            f'alt="Channel logo: a Smith chart with a three-lobed closed curve inside it"></div>'
             f'<div class="plate-block">{kicker("The Electron Plumber")}<hr class="rule rule--plate g20">'
             f'<h1 class="h1 h1--hero g36">What is an electron?</h1><p class="deck g24">{DECK}</p>'
             f'<div class="mono mono--sky g28">{esc(s["tagline"])}</div>{status}'
@@ -58,16 +58,16 @@ def home(ctx: Ctx):
         return (f'<div class="stack arc-col" style="--arc-c: {color};"><hr class="rule"><div class="g24">{badge(arc)}</div>'
                 f'<div class="mono g20">{status_text}</div><p class="small g12">{text}</p></div>')
 
-    orient = row("Orientation", (
+    orient = row("The labels", (
         '<h2 class="h2">Three kinds of video. You&rsquo;ll always know which one you&rsquo;re watching.</h2>'
         '<div class="grid grid--3 g48">'
-        + arc_col("historical", "Established record", "History, told faithfully from the original papers. "
+        + arc_col("historical", "Historical record", "History, told faithfully from the original papers. "
                   "All on-camera citations live in sources.bib.")
-        + arc_col("speculative", "Explicitly speculative", "Proposed physics, not established physics. The current program and its "
+        + arc_col("speculative", "Explicit speculation", "Proposed physics, not established physics. The current program and its "
                   "kill criteria are on the Research page.")
-        + arc_col("practical", "Demonstrated practice", "Bench work. Failure analysis on circuits rebuilt for the camera, "
+        + arc_col("practical", "Shop practice", "Bench work. Failure analysis on circuits rebuilt for the camera, "
                   "taken down to the physical mechanism.")
-        + '</div><p class="small muted g40">Every video opens by saying which one it is.</p>'))
+        + '</div><p class="small muted g40">Every episode is labeled.</p>'))
 
     if latest:
         meta = f'{kicker(latest.serial, "kicker--white")}{badge(latest.arc)}{mono(esc(latest.date) or "[DATE]")}'
@@ -97,11 +97,10 @@ def home(ctx: Ctx):
         return f'<div class="stack">{kicker(label, "kicker--sm")}<p class="small g12">{text}</p></div>'
 
     records_row = row(RECORDS[0], (
-        '<h2 class="h2">Spotted an error? Open an issue.</h2><div class="grid grid--4 g40">'
-        + record("Claims", "Every on-camera commitment gets an ID and a class. Once an episode airs, its claims are frozen.")
+        '<h2 class="h2">Spotted an error? Open an issue.</h2><div class="grid grid--3 g40">'
         + record("Sources", "Every citation made on camera lives in one public BibTeX file.")
-        + record("Corrections", "When I get something wrong it goes on a public ledger. Nothing is stealth-deleted.")
-        + record("Notes", "A free handout for every episode: learning goals, readings, check-yourself questions.")
+        + record("Corrections", "When I get something wrong it goes on a public ledger. Standing corrections for all episodes will be tracked in ERRATA.md.")
+        + record("Notes", "Learning goals, episode notes, readings, and standing corrections for each episode.")
         + f'</div><div class="g36">{arrow("See the " + RECORDS[0].lower(), ctx.to(RECORDS[1]))}</div>'))
 
     disclosure = row("", (f'<div class="quote quote--lg">{RESEARCH_HANDOFF}</div>'
@@ -167,8 +166,8 @@ def episode(ctx: Ctx, ep):
         have.add(anchor)
         blocks += f'<section class="block" id="{esc(anchor)}"><h2>{esc(title)}</h2>{body}</section>'
     if "corrections" not in have:
-        blocks += ('<section class="block" id="corrections"><h2>Corrections</h2><p class="white">None to date.</p>'
-                   '<p>Standing corrections for all episodes live on the errata ledger. Spotted an error? Open an issue.</p></section>')
+        blocks += ('<section class="block" id="corrections"><h2>Corrections</h2><p>Standing corrections for all episodes will be tracked in ERRATA.md. '
+                   'Spotted an error? Open an issue &mdash; corrections are part of the product here, not an embarrassment.</p></section>')
     report = f'<div class="g8">{arrow("Report an error", ctx.site["notes_repo"] + "/issues", external=True)}</div>'
     article = f'<article class="article">{blocks}{report}<div class="g48"></div></article>'
 
@@ -187,7 +186,7 @@ def research(ctx: Ctx):
     core = ctx.site["core_repo"]
     letter = core + "/blob/main/papers/2026_birefringence_letter/sve_vacuum_birefringence_letter.pdf"
     head = (f'<div class="page-head" style="padding-top: 80px; padding-bottom: 72px;"><div class="notice">{badge("speculative")}'
-            f'<div class="mono mono--body">Explicitly speculative. New, unproven propositions.</div></div>'
+            f'<div class="mono mono--body">Explicit speculation.</div></div>'
             f'<h1 class="h1 g28">Applied Vacuum Engineering</h1>'
             f'<p class="deck g16" style="font-size: clamp(19px, 1.8vw, 26px);">A falsifiable impedance model of the vacuum.</p>'
             f'<div class="mono g28">Apache-2.0 &nbsp;&middot;&nbsp; 1 armed forward falsifier &nbsp;&middot;&nbsp; '
@@ -273,33 +272,32 @@ def records(ctx: Ctx):
 
     labels = row("The labels", (
         '<h2 class="h2">Every episode is labeled.</h2><div class="g36">'
-        + label_row("historical", "Established record", "Physics as it was published at the time. Every source is listed in sources.bib.")
-        + label_row("speculative", "Explicitly speculative", "Not established physics. The kill criteria are on the Research page.")
-        + label_row("practical", "Demonstrated practice", "Troubleshooting method and the physics of failure, on recreated circuits.")
-        + '</div><p class="prose g36">A label here is a field in a file, and the build reads it. Every on-camera commitment is a tagged line in the '
-          'episode outline, and the build fails if a speculative claim appears in a historical episode, or if a factual claim reaches '
-          'air without a resolved source.</p>'), "row--tight")
+        + label_row("historical", "Historical record", "Physics as it was published at the time. Every source is listed in sources.bib.")
+        + label_row("speculative", "Explicit speculation", "Not established physics. The kill criteria are on the Research page.")
+        + label_row("practical", "Shop practice", "Failure analysis at the bench, on circuits rebuilt for the camera.")
+        + '</div><p class="prose g36">A label here is a field in a file, and the build reads it. Each thing I commit to on camera is one tagged line in '
+          'that episode&rsquo;s outline. A speculative line in a historical episode stops the build. So does a fact that reaches '
+          'recording without a source.</p>'), "row--tight")
 
     def legend(term, text):
         return f'<div class="legend"><div class="legend__term">{term}</div><p>{text}</p></div>'
 
     claim = row("A claim, tracked", (
-        '<h2 class="h2">Every on-camera commitment has an ID.</h2>'
-        '<div class="claim g28"><i>CLAIM</i> <b>ep0NN-c03</b> FACT topic=example-topic src=author1900key</div>'
+        '<h2 class="h2">This is what a tracked claim looks like.</h2>'
+        '<div class="claim g28"><i>CLAIM</i> <b>ep0NN-c0N</b> FACT topic=example-topic src=author1900word</div>'
         '<div class="grid grid--4 g24">'
-        + legend("ep0NN-c03", "The ID says where the claim first aired. Later episodes reference it; they never re-mint it.")
-        + legend("FACT", "The class of claim, checked against the episode&rsquo;s label by the build.")
-        + legend("topic=", "A collision key. Two live claims on one topic get looked at by a human.")
-        + legend("src=", "A key into the public sources file.")
-        + '</div><p class="prose g32">A published episode is immutable. The register is the living truth; each episode is an '
-          'as-aired freeze of what was committed to on camera. Drift between them is the product, not a bug to hide: it drives '
-          'the corrections ledger.</p>'), "row--tight")
+        + legend("ep0NN-c0N", "Episode number, then claim number. A later episode that reuses the claim points back to this ID.")
+        + legend("FACT", "One of four classes. The build checks it against the episode&rsquo;s label.")
+        + legend("topic=", "What the claim is about. If two claims share a topic, I check them against each other by hand.")
+        + legend("src=", "The entry in sources.bib that backs it.")
+        + '</div><p class="prose g32">Once an episode is out, its claims stay as aired. The register keeps moving as I learn more, '
+          'so sooner or later the two disagree. Each disagreement becomes a row in the corrections ledger.</p>'), "row--tight")
 
     ledger = row("Corrections", (
-        '<h2 class="h2">The ledger.</h2><div class="g28"><div class="ledger__head"><div>Claim</div><div>As aired</div>'
-        '<div>What is true now</div><div>Vehicle</div></div><div class="ledger__empty">None to date.</div></div>'
-        '<p class="prose g32">Correction vehicles, cheapest first: a description edit, a pinned comment, a corrections corner in a '
-        'later episode, an erratum short. Never a stealth delete.</p>'
+        '<h2 class="h2">What I got wrong.</h2><div class="g28"><div class="ledger__head"><div>Claim</div><div>What I said</div>'
+        '<div>What&rsquo;s right</div><div>Fixed in</div></div><div class="ledger__empty">Nothing yet.</div></div>'
+        '<p class="prose g32">A small error gets a description edit or a pinned comment. A big one gets time in a later '
+        'episode, or a short of its own, and either way it gets a row above.</p>'
         f'<div class="g28">{btn("Report an error", notes + "/issues", "btn--secondary", external=True)}</div>'), "row--tight")
 
     def lic(label, text, link_text, href):

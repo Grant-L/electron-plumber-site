@@ -103,7 +103,7 @@ def load(root: Path, drafts: bool = False):
             ep.draft = True
 
         if ep.live:
-            base = site["notes_repo"].rstrip("/") + "/blob/main/lectures"
+            base = site["notes_repo"].rstrip("/") + "/blob/main/" + site.get("notes_path", "").strip("/")
             try:
                 ep.sections = [(t, md.render(body, link_base=base))
                                for t, body in md.sections(handout.read_text(encoding="utf-8"))]
