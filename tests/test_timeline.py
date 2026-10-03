@@ -1,0 +1,427 @@
+import re
+from html.parser import HTMLParser
+
+import pytest
+from conftest import ROOT, fixture_bib
+
+import build
+import check
+from sitegen import bib, content, pages
+from sitegen.html import NAV, Ctx
+
+# Fixture events: the field values that matter are real (ids, dates, eras, classes, threads, keys); the wording is not.
+EVENT = '''[[event]]
+id = "1843-hamilton-quaternions"
+date = "1843-10-16"
+title = "Fixture title"
+summary = "Fixture summary."
+era = "aether"
+class = "theory"
+thread = ["vectors-quaternions"]
+verified = "primary"
+checked_by = "Historian"
+checked_date = "2026-10-03"
+
+  [[event.source]]
+  key = "hamilton1865letter"
+  kind = "primary"
+'''
+
+
+def event(id, date, era, cls, thread, key, *, basis="", extra=""):
+    lines = [f'[[event]]\nid = "{id}"', f'date = "{date}"' if date else "", f'date_basis = "{basis}"' if basis else "",
+             f'title = "Title {id}"\nsummary = "Summary {id}."\nera = "{era}"\nclass = "{cls}"',
+             "thread = [" + ", ".join(f'"{t}"' for t in thread) + "]",
+             'verified = "primary"\nchecked_by = "Historian"\nchecked_date = "2026-10-03"', extra,
+             f'\n  [[event.source]]\n  key = "{key}"\n  kind = "primary"\n']
+    return "\n".join(line for line in lines if line)
+
+
+# The Historian's v1 seed (spec section 1): dates, bases, eras, classes, threads and source keys.
+SEED = "\n".join([
+    event("1843-hamilton-quaternions", "1843-10-16", "aether", "theory", ["vectors-quaternions"], "hamilton1865letter"),
+    event("1887-michelson-morley", "1887-11", "aether", "experiment", ["ether"], "michelson1887ether", basis="published"),
+    event("1905-einstein-electrodynamics", "1905-06-30", "relativity", "theory", ["relativity", "electromagnetism"],
+          "einstein1905elektrodynamik", basis="received"),
+    event("1928-dirac-electron", "1928-02-01", "quantum-electron", "theory", ["quantum", "spin-and-moment", "g-factor"],
+          "dirac1928electron", basis="published"),
+    event("1948-schwinger-moment", "1948-02-15", "quantum-electron", "theory", ["quantum", "g-factor"], "schwinger1948moment",
+          basis="published"),
+    event("2008-hanneke-electron-moment", "2008-03-26", "precision", "measurement", ["g-factor", "spin-and-moment"],
+          "hanneke2008electron", basis="published"),
+    event("2023-fan-electron-moment", "2023-02-13", "precision", "measurement", ["g-factor", "spin-and-moment"], "fan2023electron",
+          basis="published"),
+])
+SEED_KEYS = re.findall(r'key = "(\w+)"', SEED)
+
+PUBLISHED_EP1 = ('[[episode]]\nnumber = 1\nslug = "001-x"\ntitle = "X"\narc = "historical"\nstatus = "published"\n'
+                 'youtube_id = "abcdefghijk"\ndate = "2026-01-01"\nexcerpt = "An excerpt."\n')
+
+
+def load(root, text):
+    (root / "content" / "timeline.toml").write_text(text, encoding="utf-8")
+    _, episodes = content.load(root)
+    return content.load_timeline(root, episodes)
+
+
+def render(root, text):
+    events = load(root, text)
+    site, episodes = content.load(root)
+    site["_root"] = str(ROOT)
+    return pages.history(Ctx(site, episodes, "history/", "v", timeline=events))
+
+
+class Items(HTMLParser):
+    """The <li class="tl"> items, the filter block and the chips of a History page."""
+
+    def __init__(self):
+        super().__init__()
+        self.items, self.filter, self.chips, self.times = [], None, {}, []
+        self._group = None
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "li" and a.get("class") == "tl":
+            self.items.append(a)
+        if "data-filters" in a:
+            self.filter = a
+        if a.get("data-filter"):
+            self._group = a["data-filter"]
+            self.chips[self._group] = []
+        if tag == "button" and self._group:
+            self.chips[self._group].append(a["data-value"])
+        if tag == "time":
+            self.times.append(a["datetime"])
+
+
+def parse(html):
+    p = Items()
+    p.feed(html)
+    return p
+
+
+# ------------------------------------------------------------------ 1-4: loading and refusals
+def test_a_minimal_event_loads(timeline_root):
+    [ev] = load(timeline_root, EVENT)
+    assert ev.cls == "theory" and ev.date_basis == "event" and ev.precision == "day"
+    assert ev.sources[0].entry.key == "hamilton1865letter"
+
+
+def test_no_timeline_file_means_no_events(content_root):
+    (content_root / "content" / "timeline.toml").unlink(missing_ok=True)
+    assert content.load_timeline(content_root, []) == []
+
+
+LONG = "x" * 121
+
+
+@pytest.mark.parametrize("change, message", [
+    (('title = "Fixture title"\n', ""), "title"),
+    (('era = "aether"', 'era = "aether"\ncolour = "red"'), "colour"),
+    (('era = "aether"', 'era = "aether"\ntags = ["theory"]'), "tags"),
+    (('"1843-10-16"', '"1843-13"'), "not a real date"),
+    (('"1843-10-16"', '"1843-02-30"'), "not a real date"),
+    (('"1843-10-16"', '"97"'), "YYYY"),
+    (('"1843-10-16"', '"2999"'), "in the future"),
+    (('date = "1843-10-16"', 'date = "1843-10-16"\nend = "1842"'), "later than date"),
+    (('date = "1843-10-16"', 'date = "1843-10-16"\ncirca = true'), "circa"),
+    (('date = "1843-10-16"', 'date = "1843-10-16"\ndate_basis = "printed"'), "date_basis"),
+    (('id = "1843-hamilton-quaternions"', 'id = "hamilton-quaternions"'), "id must look like"),
+    (('id = "1843-hamilton-quaternions"', 'id = "1843-Hamilton"'), "id must look like"),
+    (('\n  [[event.source]]\n  key = "hamilton1865letter"\n  kind = "primary"\n', ""), "at least one"),
+    (('key = "hamilton1865letter"', 'key = "nobody1900nothing"'), "not in content/sources.bib"),
+    (('kind = "primary"', 'kind = "primary"\n  doi = "doi:10.1/x"'), "does not look like a DOI"),
+    (('kind = "primary"', 'kind = "primary"\n  doi = "10.9999/other"'), "disagrees with sources.bib"),
+    (('kind = "primary"', 'kind = "primary"\n  url = "http://example.org/"'), "https://"),
+    (('verified = "primary"', 'verified = "yes"'), "unknown verified"),
+    (('kind = "primary"', 'kind = "secondary"'), 'needs at least one source with kind = "primary"'),
+    (('checked_by = "Historian"\n', ""), "checked_by"),
+    (('checked_date = "2026-10-03"\n', ""), "checked_date"),
+    (('"Historian"', '"00000000-1111-2222-3333-444444444444"'), "public display name"),
+    (('"Historian"', '"historian bot 2"'), "public display name"),
+    (('"2026-10-03"', '"2999-01-01"'), "in the future"),
+    (('"2026-10-03"', '"2026-10"'), "full date"),
+    (('era = "aether"', 'era = "aether"\nclaims = ["ep1-c3"]'), "must look like ep001-c03"),
+    (('era = "aether"', 'era = "aether"\nclaims = ["ep009-c01"]'), "not in episodes.toml"),
+    (('era = "aether"', 'era = "aether"\nclaims = ["ep001-c03", "ep001-c03"]'), "duplicate"),
+    (('era = "aether"', 'era = "aether"\nclaims = ["ep001-c03"]\nepisodes = [1]'), "already linked through a claim"),
+    (('era = "aether"', 'era = "aether"\nepisodes = [9]'), "not in episodes.toml"),
+    (('era = "aether"', 'era = "aether"\nrelated = ["1900-nothing"]'), "related id"),
+    (('era = "aether"', 'era = "aether"\nrelated = ["1843-hamilton-quaternions"]'), "related id"),
+    (('"Fixture summary."', '"See [the letter](https://example.org/)."'), "links"),
+    (('"Fixture title"', f'"{LONG}"'), "title must be"),
+    (('"Fixture title"', '"Two\\nlines"'), "title must be"),
+    (('"Fixture summary."', '"' + "y" * 601 + '"'), "summary must be"),
+    (('era = "aether"\n', ""), "era"),
+    (('era = "aether"', 'era = "classical"'), "unknown era"),
+    (('class = "theory"\n', ""), "'class'"),
+    (('class = "theory"', 'class = "mathematics"'), "unknown class"),
+    (('thread = ["vectors-quaternions"]', "thread = []"), "1 to 3"),
+    (('thread = ["vectors-quaternions"]', 'thread = ["ether", "quantum", "charge", "cosmology"]'), "1 to 3"),
+    (('thread = ["vectors-quaternions"]', 'thread = ["mathematics"]'), "unknown thread"),
+    (('thread = ["vectors-quaternions"]', 'thread = ["ether", "ether"]'), "duplicate"),
+])
+def test_bad_timeline_data_is_refused_with_a_message(timeline_root, change, message):
+    with pytest.raises(SystemExit, match=re.escape(message)):
+        load(timeline_root, EVENT.replace(*change))
+
+
+def test_a_duplicate_id_is_refused(timeline_root):
+    with pytest.raises(SystemExit, match="duplicate id"):
+        load(timeline_root, EVENT + "\n" + EVENT)
+
+
+def test_the_year_in_an_id_is_not_checked_against_the_date(timeline_root):
+    [ev] = load(timeline_root, EVENT.replace('id = "1843-hamilton-quaternions"', 'id = "1866-x"').replace('"1843-10-16"', '"1867"'))
+    assert ev.id == "1866-x" and ev.date == "1867" and ev.precision == "year"
+
+
+def test_secondary_only_loads_without_a_primary_source(timeline_root):
+    [ev] = load(timeline_root, EVENT.replace('verified = "primary"', 'verified = "secondary-only"')
+                .replace('key = "hamilton1865letter"\n  kind = "primary"', 'key = "secondary2000history"\n  kind = "secondary"'))
+    assert ev.verified == "secondary-only" and [s.kind for s in ev.sources] == ["secondary"]
+
+
+# ------------------------------------------------------------------ 5-7a: date basis, bounds, order, eras
+KELVIN = event("1867-kelvin-vortex-atoms", "1867-02-18", "aether", "theory", ["vortex-atoms"], "kelvin1867vortex", basis="read")
+
+
+def test_kelvin_read_date_renders_with_its_basis(timeline_root):
+    html = render(timeline_root, KELVIN)
+    assert 'Read <time datetime="1867-02-18">18 February 1867</time>' in html
+
+
+def bounded(id, extra, era="aether"):
+    return event(id, "", era, "theory", ["ether"], "hamilton1865letter", extra=extra)
+
+
+@pytest.mark.parametrize("extra, text", [
+    ('not_after = "1850"', 'Before <time datetime="1850">1850</time>'),
+    ('not_before = "1845"', 'After <time datetime="1845">1845</time>'),
+    ('not_before = "1845"\nnot_after = "1850"', 'Between <time datetime="1845">1845</time> and <time datetime="1850">1850</time>'),
+])
+def test_bounds_load_and_render(timeline_root, extra, text):
+    assert text in render(timeline_root, bounded("1850-bounded", extra))
+
+
+@pytest.mark.parametrize("extra, message", [
+    ('not_before = "1850"\nnot_after = "1850"', "earlier than not_after"),
+    ('not_before = "1851"\nnot_after = "1850"', "earlier than not_after"),
+    ('date = "1849"\nnot_after = "1850"', "not both"),
+    ('not_after = "1850"\ncirca = true', "not with not_before"),
+    ('not_after = "1850"\nend = "1851"', "not with not_before"),
+    ("", "needs a date"),
+])
+def test_bad_bounds_are_refused(timeline_root, extra, message):
+    with pytest.raises(SystemExit, match=message):
+        load(timeline_root, bounded("1850-bounded", extra))
+
+
+def test_a_bound_sorts_at_its_own_year(timeline_root):
+    e1849 = event("1849-a", "1849", "aether", "theory", ["ether"], "hamilton1865letter")
+    e1851 = event("1851-c", "1851", "aether", "theory", ["ether"], "hamilton1865letter")
+    before = bounded("1850-b", 'not_after = "1850"')
+    assert [e.id for e in load(timeline_root, "\n".join([e1849, before, e1851]))] == ["1849-a", "1850-b", "1851-c"]
+    with pytest.raises(SystemExit, match="out of order"):
+        load(timeline_root, "\n".join([before, e1849, e1851]))
+    with pytest.raises(SystemExit, match="out of order"):
+        load(timeline_root, "\n".join([e1849, e1851, before]))
+
+
+def test_out_of_order_events_are_refused_naming_both(timeline_root):
+    later = event("1887-later", "1887", "aether", "experiment", ["ether"], "michelson1887ether")
+    with pytest.raises(SystemExit, match="1843-hamilton-quaternions.*1887-later"):
+        load(timeline_root, later + "\n" + EVENT)
+
+
+def test_non_contiguous_eras_are_refused(timeline_root, monkeypatch):
+    """The era bounds already imply contiguity; this second check needs overlapping test eras to fire."""
+    monkeypatch.setattr(content, "ERAS", {"a": ("A", 1840, 1904), "b": ("B", 1840, 1904)})
+    text = "\n".join([event("1850-x", "1850", "a", "theory", ["ether"], "hamilton1865letter"),
+                      event("1860-y", "1860", "b", "theory", ["ether"], "hamilton1865letter"),
+                      event("1870-z", "1870", "a", "theory", ["ether"], "hamilton1865letter")])
+    with pytest.raises(SystemExit, match="not contiguous"):
+        load(timeline_root, text)
+
+
+def test_an_unquoted_toml_date_is_accepted(timeline_root):
+    [ev] = load(timeline_root, EVENT.replace('date = "1843-10-16"', "date = 1843-10-16"))
+    assert ev.date == "1843-10-16"
+
+
+@pytest.mark.parametrize("date, era, ok", [
+    ("1904", "relativity", False), ("1905", "relativity", True), ("1924", "relativity", True), ("1925", "relativity", False),
+    ("2025", "precision", True), ("1949", "precision", False), ("1904", "aether", True),
+])
+def test_era_bounds(timeline_root, date, era, ok):
+    text = event(f"{date}-x", date, era, "theory", ["relativity"], "einstein1905elektrodynamik")
+    if ok:
+        assert load(timeline_root, text)[0].era == era
+    else:
+        with pytest.raises(SystemExit, match="outside the"):
+            load(timeline_root, text)
+
+
+def test_a_bounds_event_is_checked_on_its_sort_key_year(timeline_root):
+    with pytest.raises(SystemExit, match="1905 is outside the 'aether' era"):
+        load(timeline_root, bounded("1905-x", 'not_after = "1905"'))
+
+
+@pytest.mark.parametrize("era", list(content.ERAS))
+def test_an_1839_event_fits_no_era(timeline_root, era):
+    with pytest.raises(SystemExit, match="outside the"):
+        load(timeline_root, event("1839-x", "1839", era, "theory", ["ether"], "hamilton1865letter"))
+
+
+# ------------------------------------------------------------------ 7b: the seed and the ship blocker
+def test_the_seed_loads_when_every_key_is_in_the_bib(timeline_root):
+    events = load(timeline_root, SEED)
+    assert len(events) == 7
+    assert [e.date for e in events] == ["1843-10-16", "1887-11", "1905-06-30", "1928-02-01", "1948-02-15", "2008-03-26", "2023-02-13"]
+    assert 'Received <time datetime="1905-06-30">30 June 1905</time>' in render(timeline_root, SEED)
+
+
+def test_the_seed_is_refused_without_hanneke2008electron(timeline_root):
+    """Encodes the ship blocker: the seed cannot load until the bib copy carries hanneke2008electron."""
+    keys = [k for k in SEED_KEYS if k != "hanneke2008electron"]
+    (timeline_root / "content" / "sources.bib").write_text(fixture_bib(keys), encoding="utf-8")
+    with pytest.raises(SystemExit, match="hanneke2008electron.*sources.bib"):
+        load(timeline_root, SEED)
+
+
+def test_the_seed_is_refused_without_a_bib_copy(timeline_root):
+    (timeline_root / "content" / "sources.bib").unlink()
+    with pytest.raises(SystemExit, match="sources.bib"):
+        load(timeline_root, SEED)
+
+
+def test_the_seed_sources_are_in_the_copied_bib():
+    """Expected to fail until content/sources.bib is copied from a notes commit that has hanneke2008electron."""
+    path = ROOT / "content" / "sources.bib"
+    assert path.is_file(), "content/sources.bib has not been copied from Grant-L/electron-plumber-notes yet"
+    missing = [k for k in SEED_KEYS if k not in bib.load(path)]
+    assert not missing, f"not in content/sources.bib: {', '.join(missing)}"
+
+
+# ------------------------------------------------------------------ 8-12: the page
+def test_every_event_renders_without_javascript(timeline_root):
+    events = load(timeline_root, SEED)
+    html = render(timeline_root, SEED)
+    p = parse(html)
+    assert len(p.items) == len(events)
+    for item, ev in zip(p.items, events, strict=True):
+        assert item["id"] == ev.id and item["data-era"] == ev.era and item["data-class"] == ev.cls
+        assert item["data-thread"] == " ".join(ev.thread) and item["data-verified"] == ev.verified
+        assert "hidden" not in item
+        assert f'<time datetime="{ev.date}">' in html
+    assert p.filter is not None and "hidden" in p.filter
+    assert html.count("Checked against the original") == 7
+    assert "Historian" not in html  # the checked mark shows its date, never who checked
+
+
+def test_the_secondary_only_mark_renders(timeline_root):
+    html = render(timeline_root, EVENT.replace('verified = "primary"', 'verified = "secondary-only"'))
+    assert "Secondary sources only" in html and 'data-verified="secondary-only"' in html
+
+
+def test_the_page_shows_the_approved_copy(timeline_root):
+    html = render(timeline_root, EVENT)
+    assert pages.HISTORY_INTRO in html and pages.HISTORY_LEGEND in html
+    assert f'content="{pages.HISTORY_DESCRIPTION}"' in html
+    assert 'Checked <time datetime="2026-10-03">3 October 2026</time>' in html
+
+
+def test_citation_text_comes_from_the_bib(timeline_root):
+    html = render(timeline_root, EVENT)
+    assert "<cite>Fixture entry hamilton1865letter</cite>. Ann Author and Will Writer. Fixture Journal 1, 1\u20132 (2000)." in html
+    assert 'href="https://doi.org/10.0000/fixture.hamilton1865letter"' in html
+
+
+def test_claims_render_only_for_published_episodes(timeline_root):
+    text = EVENT.replace('era = "aether"', 'era = "aether"\nclaims = ["ep001-c03"]')
+    html = render(timeline_root, text)  # Episode 001 is in production
+    assert "ep001-c03" not in html and "episodes/001" not in html
+    (timeline_root / "content" / "episodes.toml").write_text(PUBLISHED_EP1, encoding="utf-8")
+    (timeline_root / "content" / "episodes" / "001-x.md").write_text("## Learning goals\n\n- a\n", encoding="utf-8")
+    html = render(timeline_root, text)
+    assert '<a href="../episodes/001-x/">Episode 001</a> (claim ep001-c03)' in html
+
+
+def test_an_unpublished_episode_is_not_linked_through_episodes_either(timeline_root):
+    html = render(timeline_root, EVENT.replace('era = "aether"', 'era = "aether"\nepisodes = [1]'))
+    assert "tl__episodes" not in html and "episodes/001" not in html
+
+
+def test_chips_are_all_plus_the_values_in_use(timeline_root):
+    p = parse(render(timeline_root, SEED))
+    assert p.chips["era"] == ["all", "aether", "relativity", "quantum-electron", "precision"]
+    assert p.chips["class"] == ["all", "experiment", "measurement", "theory"]
+    assert p.chips["thread"] == ["all", "ether", "electromagnetism", "vectors-quaternions", "relativity", "quantum",
+                                 "spin-and-moment", "g-factor"]
+    p = parse(render(timeline_root, EVENT))
+    assert p.chips == {"era": ["all", "aether"], "thread": ["all", "vectors-quaternions"], "class": ["all", "theory"]}
+
+
+def test_timeline_text_is_escaped(timeline_root):
+    html = render(timeline_root, EVENT.replace('"Fixture title"', '"X & <Y>"').replace('"Fixture summary."', '"a < b & c"'))
+    assert "X &amp; &lt;Y&gt;" in html and "<Y>" not in html and "a &lt; b &amp; c" in html
+
+
+def test_related_links_point_at_the_other_entry(timeline_root):
+    other = event("1887-michelson-morley", "1887-11", "aether", "experiment", ["ether"], "michelson1887ether")
+    html = render(timeline_root, EVENT.replace('era = "aether"', 'era = "aether"\nrelated = ["1887-michelson-morley"]') + "\n" + other)
+    assert 'See also <a href="#1887-michelson-morley">Title 1887-michelson-morley</a>' in html
+
+
+def test_an_empty_timeline_renders_the_empty_state_without_filters():
+    site, episodes = content.load(ROOT)
+    site["_root"] = str(ROOT)
+    html = pages.history(Ctx(site, episodes, "history/", "v", timeline=[]))
+    assert "Nothing published yet." in html and "data-filters" not in html and pages.HISTORY_INTRO in html
+
+
+# ------------------------------------------------------------------ 13-17: shell, links and the gate
+def test_nav_puts_history_right_after_episodes(tmp_path):
+    assert [name for name, _ in NAV][:2] == ["Episodes", "History"]
+    build.build(tmp_path / "site")
+    history = (tmp_path / "site" / "history" / "index.html").read_text(encoding="utf-8")
+    assert '<a href="../history/" aria-current="page">History</a>' in history
+    for other in ("index.html", "episodes/index.html", "corrections/index.html", "about/index.html"):
+        text = (tmp_path / "site" / other).read_text(encoding="utf-8")
+        assert re.search(r'href="[./]*history/">History</a>', text) and 'aria-current="page">History' not in text
+
+
+def test_home_and_corrections_link_to_history(tmp_path):
+    build.build(tmp_path / "site")
+    home = (tmp_path / "site" / "index.html").read_text(encoding="utf-8")
+    historical = home.split('class="stack arc-col"')[1]
+    assert 'href="./history/"><span>The timeline' in historical
+    assert home.count('history/"><span>The timeline') == 1
+    corrections = (tmp_path / "site" / "corrections" / "index.html").read_text(encoding="utf-8")
+    assert ('Entries on the <a href="../history/">History</a> page follow the same rules: each cites its sources in '
+            "sources.bib, and a factual error in one gets a row in this ledger.") in corrections
+    assert "/history/</loc>" in (tmp_path / "site" / "sitemap.xml").read_text(encoding="utf-8")
+
+
+def _built_with(tmp_path, root, text):
+    """The public build, with its History page re-rendered from fixture data."""
+    build.build(tmp_path / "site")
+    (tmp_path / "site" / "history" / "index.html").write_text(render(root, text), encoding="utf-8")
+    return tmp_path / "site"
+
+
+def test_a_history_page_with_events_passes_every_check(tmp_path, timeline_root):
+    assert check.check(_built_with(tmp_path, timeline_root, SEED)) == []
+
+
+def test_a_broken_history_anchor_is_caught(tmp_path, timeline_root):
+    site = _built_with(tmp_path, timeline_root, EVENT)
+    about = site / "about" / "index.html"
+    about.write_text(about.read_text(encoding="utf-8").replace("</main>", '<a href="../history/#1843-nope">x</a></main>'), encoding="utf-8")
+    assert any("missing anchor" in p for p in check.check(site))
+
+
+def test_a_private_term_in_an_event_is_caught(tmp_path, timeline_root, monkeypatch):
+    monkeypatch.setenv("FORBIDDEN_TERMS", "zzqx-corp")
+    site = _built_with(tmp_path, timeline_root, EVENT.replace('"Fixture summary."', '"Funded by ZZQX-Corp."'))
+    assert any(p.startswith("history/index.html") and "must never appear" in p for p in check.check(site))

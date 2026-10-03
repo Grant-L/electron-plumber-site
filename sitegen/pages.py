@@ -1,6 +1,7 @@
 """Page templates. Home and Episodes are driven by episode status, so nothing here claims a video exists before it does."""
 from pathlib import Path
 
+from . import content, md
 from .html import RECORDS, Ctx, arrow, badge, btn, card, esc, kicker, mono, page, row, subscribe
 
 DECK = "We know what it <em>does</em> to a part in a trillion. Nobody knows what it <em>is</em>."
@@ -53,16 +54,17 @@ def home(ctx: Ctx):
             f'<div class="mono mono--sky g28">{esc(s["tagline"])}</div>{status}'
             f'<div class="cluster cluster--stack g40">{actions}</div></div>')
 
-    def arc_col(arc, status_text, text):
+    def arc_col(arc, status_text, text, link=""):
         color = {"historical": "var(--sky)", "speculative": "var(--orange)", "practical": "var(--green)"}[arc]
         return (f'<div class="stack arc-col" style="--arc-c: {color};"><hr class="rule"><div class="g24">{badge(arc)}</div>'
-                f'<div class="mono g20">{status_text}</div><p class="small g12">{text}</p></div>')
+                f'<div class="mono g20">{status_text}</div><p class="small g12">{text}</p>'
+                + (f'<div class="g12">{link}</div>' if link else "") + '</div>')
 
     orient = row("The labels", (
         '<h2 class="h2">Three kinds of video. You&rsquo;ll always know which one you&rsquo;re watching.</h2>'
         '<div class="grid grid--3 g48">'
         + arc_col("historical", "Historical record", "History, told faithfully from the original papers. "
-                  "All on-camera citations live in sources.bib.")
+                  "All on-camera citations live in sources.bib.", link=arrow("The timeline", ctx.to("history/")))
         + arc_col("speculative", "Explicit speculation", "Proposed physics, not established physics. The current program and its "
                   "kill criteria are on the Research page.")
         + arc_col("practical", "Shop practice", "Bench work. Failure analysis on circuits rebuilt for the camera, "
@@ -121,12 +123,14 @@ def episodes(ctx: Ctx):
 
     filt = ""
     if len(published) > 1:
-        chips = '<button class="chip" type="button" data-arc="all" aria-pressed="true">All</button>' + "".join(
-            f'<button class="chip" type="button" data-arc="{a}" aria-pressed="false" style="--c: var(--{c});"><i></i>{n}</button>'
+        chips = '<button class="chip" type="button" data-value="all" aria-pressed="true">All</button>' + "".join(
+            f'<button class="chip" type="button" data-value="{a}" aria-pressed="false" style="--c: var(--{c});"><i></i>{n}</button>'
             for a, n, c in (("historical", "Historical", "sky"), ("speculative", "Speculative", "orange"),
                             ("practical", "Practical", "green")))
-        filt = (f'<div class="filter"><div class="inner"><div class="filter__chips" role="group" aria-label="Filter by arc">{chips}</div>'
-                f'<div class="mono" role="status" data-total="{len(published)}">{len(published)} published</div></div></div>')
+        # An upcoming episode with no arc yet has no data-arc, so the filter never hides it.
+        filt = (f'<div class="filter" data-filters data-items=".ep-row[data-arc]" data-empty="Nothing in this arc yet." hidden><div class="inner">'
+                f'<div class="filter__chips" role="group" aria-label="Filter by arc" data-filter="arc">{chips}</div>'
+                f'<div class="mono" role="status" data-total="{len(published)}" data-noun="published">{len(published)} published</div></div></div>')
 
     rows = ""
     for ep in published:
@@ -179,6 +183,140 @@ def episode(ctx: Ctx, ep):
 
     return page(ctx, title=f"{ep.serial}: {ep.title}", active="Episodes", arc=ep.arc or None, noindex=ep.draft,
                 description=ep.excerpt or f"{ep.serial} of The Electron Plumber.", body=head + video + article + nxt)
+
+
+# ------------------------------------------------------------------ HISTORY
+HISTORY_INTRO = ("History, told from the original papers. Each entry is a dated step in the long argument over what an electron is, "
+                 "with the papers it rests on. Every source is listed in sources.bib, and when I get one wrong, it goes on the "
+                 "corrections ledger. A date marked c. is an estimate; the record gives no exact day.")
+HISTORY_LEGEND = "Each entry says whether it was checked against the original paper or letter, or against secondary sources only."
+HISTORY_DESCRIPTION = ("A dated timeline of the search for what an electron is, told from the original papers. "
+                       "Every entry cites its sources.")
+MONTHS = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+DATE_BASIS_PREFIX = {"read": "Read", "received": "Received", "published": "Published"}
+
+
+def _date_text(value):
+    parts = [int(p) for p in value.split("-")]
+    if len(parts) == 3:
+        return f"{parts[2]} {MONTHS[parts[1] - 1]} {parts[0]}"
+    if len(parts) == 2:
+        return f"{MONTHS[parts[1] - 1]} {parts[0]}"
+    return str(parts[0])
+
+
+def _time(value):
+    return f'<time datetime="{esc(value)}">{_date_text(value)}</time>'
+
+
+def _when(ev):
+    """The date line: date_basis prefix, then a date (circa, range) or open-ended bounds."""
+    if ev.date:
+        text = ('<abbr title="circa">c.</abbr> ' if ev.circa else "") + _time(ev.date)
+        if ev.end:
+            text += "&ndash;" + _time(ev.end)
+    elif ev.not_before and ev.not_after:
+        text = f"between {_time(ev.not_before)} and {_time(ev.not_after)}"
+    elif ev.not_before:
+        text = f"after {_time(ev.not_before)}"
+    else:
+        text = f"before {_time(ev.not_after)}"
+    prefix = DATE_BASIS_PREFIX.get(ev.date_basis)
+    if prefix:
+        return f"{prefix} {text}"
+    return text[0].upper() + text[1:] if text[0].islower() else text
+
+
+def _authors(names):
+    if len(names) > 3:
+        return f"{names[0]} et al."
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def _citation(entry, src):
+    """One source line. The citation text comes from sources.bib; the timeline adds kind, locator, link and note."""
+    f = entry.fields
+    venue = next((f[k] for k in ("journal", "booktitle", "howpublished", "publisher", "institution", "school") if f.get(k)), "")
+    where = venue + (f" {f['volume']}" if f.get("volume") else "") + (f" ({f['number']})" if f.get("number") else "")
+    where += (f", {f['pages']}" if f.get("pages") else "")
+    where = (f"{where} ({f['year']})" if where else f["year"]) + (f", {src.locator}" if src.locator else "")
+    parts = [f"<cite>{esc(f['title'])}</cite>"] + ([esc(_authors(entry.authors))] if entry.authors else []) + [esc(where)]
+    text = ". ".join(parts) + "."
+    doi, url = src.doi or f.get("doi", ""), src.url or f.get("url", "")
+    if doi:
+        text += f' <a href="https://doi.org/{esc(doi)}" rel="noopener">doi:{esc(doi)}</a>'
+    elif url:
+        text += f' <a href="{esc(url)}" rel="noopener">{esc(url.removeprefix("https://"))}</a>'
+    if src.note:
+        text += f" {esc(src.note)}"
+    return f'<li>{text} <span class="mono">{src.kind.capitalize()}</span></li>'
+
+
+def _episode_links(ctx, ev):
+    """Claims and episode links, for published episodes only: nothing is named before it exists."""
+    by_number = {e.number: e for e in ctx.episodes}
+    linked = {}
+    for claim in ev.claims:
+        number = int(claim[2:5])
+        if by_number[number].live:
+            linked.setdefault(number, []).append(claim)
+    for number in ev.episodes:
+        if by_number[number].live:
+            linked.setdefault(number, [])
+    out = []
+    for number, claims in linked.items():
+        ep = by_number[number]
+        note = f" ({'claims' if len(claims) > 1 else 'claim'} {', '.join(claims)})" if claims else ""
+        out.append(f'<a href="{ctx.to(ep.url)}">{esc(ep.serial)}</a>{esc(note)}')
+    return f'<p class="small tl__episodes">In {"; ".join(out)}</p>' if out else ""
+
+
+def _history_filters(events):
+    def group(name, label_all, aria, vocab, used):
+        chips = f'<button class="chip" type="button" data-value="all" aria-pressed="true">{label_all}</button>' + "".join(
+            f'<button class="chip" type="button" data-value="{slug}" aria-pressed="false">{esc(label)}</button>'
+            for slug, label in vocab.items() if slug in used)
+        return f'<div class="filter__chips" role="group" aria-label="{aria}" data-filter="{name}">{chips}</div>'
+
+    total = len(events)
+    noun = "event" if total == 1 else "events"
+    return ('<div class="filter filter--multi" data-filters data-items=".tl" data-empty="Nothing matches." hidden><div class="inner">'
+            + group("era", "All eras", "Filter by era", {k: v[0] for k, v in content.ERAS.items()}, {e.era for e in events})
+            + group("thread", "All subjects", "Filter by subject", content.THREADS, {t for e in events for t in e.thread})
+            + group("class", "All kinds", "Filter by kind of event", content.CLASSES, {e.cls for e in events})
+            + f'<div class="mono" role="status" data-total="{total}" data-noun="{noun}">{total} {noun}</div></div></div>')
+
+
+def history(ctx: Ctx):
+    events = list(ctx.timeline)
+    head = (f'<div class="page-head"><div class="notice">{badge("historical")}<div class="mono mono--body">Historical record.</div></div>'
+            f'<h1 class="h1 h1--page g20">History</h1><p class="deck deck--sm g20">{HISTORY_INTRO}</p>'
+            f'<p class="small muted g16">{HISTORY_LEGEND}</p></div>')
+    if not events:
+        body = '<div class="empty"><p class="prose">Nothing published yet.</p></div>'
+        return page(ctx, title="History", active="History", description=HISTORY_DESCRIPTION, body=head + body + subscribe(ctx))
+
+    titles = {e.id: e.title for e in events}
+    items = ""
+    for ev in events:
+        meta = " &middot; ".join([esc(content.ERAS[ev.era][0]), esc(content.CLASSES[ev.cls]),
+                                  esc(", ".join(content.THREADS[t] for t in ev.thread)), content.VERIFIED[ev.verified]])
+        people = f'<p class="mono tl__people">{esc(", ".join(ev.people))}</p>' if ev.people else ""
+        sources = "".join(_citation(s.entry, s) for s in ev.sources)
+        related = ('<p class="small tl__related">See also ' + ", ".join(f'<a href="#{esc(r)}">{esc(titles[r])}</a>' for r in ev.related)
+                   + "</p>") if ev.related else ""
+        items += (f'<li class="tl" id="{esc(ev.id)}" data-era="{esc(ev.era)}" data-thread="{esc(" ".join(ev.thread))}" '
+                  f'data-class="{esc(ev.cls)}" data-verified="{esc(ev.verified)}"><article>'
+                  f'<p class="mono tl__date">{_when(ev)}</p>'
+                  f'<h2 class="h3 tl__title"><a href="#{esc(ev.id)}">{esc(ev.title)}</a></h2>'
+                  f'<p class="mono tl__meta">{meta}</p>'
+                  f'<p class="small tl__summary">{md.inline(ev.summary)}</p>{people}'
+                  f'<ol class="tl__sources">{sources}</ol>'
+                  f'<p class="mono tl__checked">Checked {_time(ev.checked_date)}</p>'
+                  f'{_episode_links(ctx, ev)}{related}</article></li>')
+    timeline = row("Timeline", f'<ol class="timeline">{items}</ol>', "row--tight")
+    return page(ctx, title="History", active="History", description=HISTORY_DESCRIPTION,
+                body=head + _history_filters(events) + timeline + subscribe(ctx))
 
 
 # ------------------------------------------------------------------ RESEARCH
@@ -298,6 +436,8 @@ def records(ctx: Ctx):
         '<div>What&rsquo;s right</div><div>Fixed in</div></div><div class="ledger__empty">Nothing yet.</div></div>'
         '<p class="prose g32">A small error gets a description edit or a pinned comment. A big one gets time in a later '
         'episode, or a short of its own, and either way it gets a row above.</p>'
+        f'<p class="prose g16">Entries on the <a href="{ctx.to("history/")}">History</a> page follow the same rules: each cites its '
+        'sources in sources.bib, and a factual error in one gets a row in this ledger.</p>'
         f'<div class="g28">{btn("Report an error", notes + "/issues", "btn--secondary", external=True)}</div>'), "row--tight")
 
     def lic(label, text, link_text, href):

@@ -6,7 +6,7 @@ from .content import ARCS
 FONTS = ("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600"
          "&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&amp;display=swap")
 RECORDS = ("Corrections", "corrections/")  # the page with the labels, the claim format, the ledger, sources and licenses
-NAV = [("Episodes", "episodes/"), ("Research", "research/"), RECORDS, ("About", "about/")]
+NAV = [("Episodes", "episodes/"), ("History", "history/"), ("Research", "research/"), RECORDS, ("About", "about/")]
 ARROW = ('<svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true">'
          '<path d="M0 6h14M9 1l5 5-5 5" stroke="currentColor" stroke-width="1.6"/></svg>')
 BACK = ('<svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true">'
@@ -20,8 +20,9 @@ def esc(text):
 class Ctx:
     """Everything a template needs, plus link helpers that stay relative so the site works from any base path."""
 
-    def __init__(self, site, episodes, path, version, absolute=False):
+    def __init__(self, site, episodes, path, version, absolute=False, timeline=()):
         self.site, self.episodes, self.path, self.version = site, episodes, path, version
+        self.timeline = timeline
         depth = path.count("/")
         self.root = "/" if absolute else ("../" * depth if depth else "./")
 

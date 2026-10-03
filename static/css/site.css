@@ -188,6 +188,27 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .ep-row__card { width: min(400px, 42%); flex-shrink: 0; }
 .ep-row[hidden] { display: none; }
 .empty { padding: 56px var(--pad); max-width: 1440px; margin: 0 auto; }
+/* The filter block ships with the hidden attribute; site.js reveals it. */
+.filter[hidden] { display: none; }
+.filter--multi .inner { padding-top: 12px; padding-bottom: 12px; gap: 4px 48px; justify-content: flex-start; }
+.filter--multi [role=status] { margin-left: auto; }
+
+/* ------------------------------------------------------------ history */
+.timeline { list-style: none; padding: 0; }
+.tl { display: block; padding: 40px 0; border-top: 1px solid var(--line); scroll-margin-top: 24px; }
+.tl:first-child { padding-top: 0; border-top: 0; }
+.tl[hidden] { display: none; }
+.tl article { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
+.tl__date { color: var(--sky); }
+.tl__date abbr { text-decoration: none; }
+.tl__title a { color: inherit; text-decoration: none; }
+.tl__title a:hover { color: var(--sky); }
+.tl__summary { color: var(--body); }
+.tl__people { color: var(--body); }
+.tl__sources { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 1.55; overflow-wrap: anywhere; }
+.tl__sources cite { color: var(--fg); }
+.tl__sources .mono { font-size: 12px; }
+.tl__checked { font-size: 12px; }
 
 /* ------------------------------------------------------------ episode post */
 .post-head { width: min(960px, 100% - 2 * var(--pad)); margin: 0 auto; padding: 56px 0 48px; display: flex; flex-direction: column; }
