@@ -21,32 +21,46 @@ Every build follows the brief-and-receipt pattern:
 - `content/site.toml`: site-wide settings (title, author, site URL, links to YouTube and the two repos, tagline, contact address, newsletter endpoint, and `notes_path`, the folder in the notes repo that relative links in episode notes resolve against). Everything in it is public.
 - `content/episodes.toml`: one `[[episode]]` per announced episode. `status` (`in-production` or `published`) decides what the site says about it. A published episode needs `arc` (`historical`, `speculative` or `practical`), `youtube_id`, `date` and `excerpt`.
 - `content/episodes/<slug>.md`: episode notes, for **published** episodes only.
-- `sitegen/content.py`: loads and validates content. The build refuses bad content rather than rendering it wrong (one known exception: inline images, see `sitegen/md.py` below).
+- `sitegen/content.py`: loads `site.toml` and validates the episode data: the fields and values in `episodes.toml`, and that each notes file in `content/episodes/` pairs with a published episode and has `## ` sections. A bad entry stops the build with a message. It makes no promise that the Markdown inside a notes file renders correctly; see `sitegen/md.py`.
 - `sitegen/pages.py`: page templates (markup and prose).
 - `sitegen/html.py`: the page shell and shared components, `NAV`, and `RECORDS` (the Corrections page route).
-- `sitegen/md.py`: a small Markdown subset. Constructs it knows it doesn't support (tables, nested lists, horizontal rules, `~~~` fences, headings below `####`, and a line that begins with an image, `![`) are build errors. Raw HTML is escaped, never passed through. Known gap: an image anywhere else, such as mid-paragraph or in a list item, is not caught and renders as a stray `!` followed by a link, so don't use images in episode notes.
-- `build.py`: routes. The pages are `/`, `/episodes/`, `/research/`, `/corrections/`, `/about/`, `/404.html`, and one page per published episode at `/episodes/<slug>/`. Short-link redirects are `/notes`, `/errata` (the notes repo's `ERRATA.md`), `/code`, `/letter`, `/yt`, and `/NNN` for each published episode. It also writes `sitemap.xml`, `robots.txt`, `CNAME` and `.nojekyll`.
-- `static/`: copied to the site root as is. There's one stylesheet (`static/css/site.css`) and one script (`static/js/site.js`). Keep it that way.
-- `design/`: the mark (SVG and PNG) and `design/make_mark.py`, which draws it (into `design/mark/`, plus the favicons in `static/`).
+- `sitegen/md.py`: a small Markdown subset, and only that subset is supported:
+  - Headings `#` to `####` and paragraphs.
+  - `-`/`*` and `1.` lists, with indented continuation lines.
+  - Fenced code blocks (```` ``` ````) and blockquotes.
+  - HTML comments, which are dropped.
+  - Inline code, `[text](url)` links, `<https://...>` autolinks, bold and italic.
+
+  Raw HTML is escaped, not passed through. The build stops with an error on:
+  - an unclosed ```` ``` ```` fence;
+  - a nested list;
+  - a line, read where a new block starts, that begins with `|`, `~~~`, `#####`, `![`, `+ ` or a number and `)`;
+  - a table delimiter row;
+  - a horizontal rule or setext underline: a line made only of three or more `-`, `*` or `_`, or only of `=`.
+
+  Anything else outside the subset may render wrong without any error. Examples are indented code, reference-style links, an image mid-paragraph, and a table inside a blockquote or list item. So stick to the subset, and check the rendered page with `make serve` (or `make serve-drafts` for a draft).
+- `build.py`: routes. The pages are `/`, `/episodes/`, `/research/`, `/corrections/`, `/about/`, `/404.html`, and one page per published episode at `/episodes/<slug>/`. Short-link redirects are `/notes`, `/errata` (the notes repo's `ERRATA.md`), `/code`, `/letter`, `/yt`, and `/NNN` for each published episode. A drafts build adds the same page and `/NNN` link for each draft. It also writes `sitemap.xml`, `robots.txt`, `CNAME` and `.nojekyll`.
+- `static/`: copied to the site root as is. Right now there's one stylesheet (`static/css/site.css`) and one script (`static/js/site.js`). Keep it that way.
+- `design/`: the mark (SVG and PNG) and `design/make_mark.py`, which draws it. The script writes into `design/mark/`. It also overwrites tracked brand files in `static/`: `favicon.svg`, `favicon.png`, `apple-touch-icon.png`, and `img/mark-hero.svg`, `img/mark-plate.svg`, `img/mark-small.svg` and `img/mark-banner-halo.svg`. Review that diff before committing.
 
 ## Commands
 
 - `make build`: build the public site into `_site/`.
 - `make serve`: build, then serve at http://localhost:4173.
-- `make check`: build, then run the gate (links, anchors, titles, placeholders, standing rules, and the forbidden-terms scan of built and tracked files).
+- `make check`: build, then run the gate (links, anchors, titles, placeholders, standing rules, and, when the list is available, the forbidden-terms scan of built and tracked files).
 - `make test`: unit tests (`python3 -m pytest -q`).
 - `make lint`: `ruff check .`.
-- `make drafts` / `make serve-drafts`: build with unpublished notes from `_private/drafts/` into `_site_drafts/` and serve at http://localhost:4174. A draft only renders for an episode already listed in `content/episodes.toml` and not yet published. These builds are for local preview only and never deploy.
-- `make mark`: redraw the mark and favicons. Needs `matplotlib`.
+- `make drafts` / `make serve-drafts`: build with unpublished notes from `_private/drafts/` into `_site_drafts/` and serve at http://localhost:4174. A draft renders only for an episode already listed in `content/episodes.toml` and not yet published. These builds are for local preview. The deploy workflow uploads `_site/` only; don't deploy `_site_drafts/` any other way.
+- `make mark`: redraw the mark, the favicons and the `static/img/mark-*.svg` files. Needs `matplotlib`.
 - `make clean`: remove `_site/` and `_site_drafts/`.
 
 `.claude/launch.json` defines two preview servers for Claude Code, `site` (port 4173, `_site/`) and `drafts` (port 4174, `_site_drafts/`). They only serve; run `make build` or `make drafts` first.
 
-Before you open a PR, run `make lint`, `make test` and `make check`. CI (`.github/workflows/ci.yml`) runs the same three steps (`ruff check .`, `python -m pytest -q`, `make check`) on every pull request and uploads the built site as a `site-preview` artifact. The deploy workflow runs the tests and `make check`, not lint. The pre-commit config runs whitespace, end-of-file, TOML, YAML and large-file (600 KB) hooks, `ruff check`, and `make check`. Dependabot bumps the GitHub Actions versions monthly. `_site/` and `_site_drafts/` are build output and are never committed.
+Before you open a PR, run `make lint`, `make test` and `make check`. CI (`.github/workflows/ci.yml`) runs the same three steps (`ruff check .`, `python -m pytest -q`, `make check`) on pull requests and manual dispatch, and uploads the built site as a `site-preview` artifact. The deploy workflow runs the tests and `make check`, not lint. The pre-commit config runs whitespace, end-of-file, TOML, YAML and large-file (600 KB) hooks, `ruff check`, and `make check`. Dependabot bumps the GitHub Actions versions monthly. `_site/` and `_site_drafts/` are build output and are gitignored; don't commit them.
 
 ## Without JavaScript
 
-`static/js/site.js` adds three things: the phone menu toggle, click-to-load YouTube embeds (without JS, the play button is a plain link to the video), and the arc filter on the episode list (without JS, every episode stays listed). All content is server-rendered HTML. Don't add content or navigation that only exists in JS.
+`static/js/site.js` adds three things: the phone menu toggle, click-to-load YouTube embeds (without JS, the play button is a plain link to the video), and the arc filter on the episode list (without JS, every episode stays listed). Page content is in the server-rendered HTML; the script only changes what's shown, and loads the YouTube player on click. Don't add content or navigation that only exists in JS.
 
 Known gap: at 1000px wide or less, `.nav` is hidden by CSS and only `site.js` opens it. A phone with JS off therefore has no main menu, and there's no `<noscript>` or CSS-only fallback. If you change the header, fix this; don't make it worse.
 
@@ -54,11 +68,16 @@ Known gap: at 1000px wide or less, `.nav` is hidden by CSS and only `site.js` op
 
 See README, "Rules the build enforces". In short:
 
-- A published episode needs its notes file, and a notes file needs a published episode. Unpublished notes never go in `content/`.
-- Every page has balanced tags and a title. Every page except the short-link redirects also has a meta description and exactly one `h1`, every internal link, asset and anchor on it resolves, and no `[PLACEHOLDER]` text ships. The gate checks redirect pages only for balanced tags and a title, so it never verifies that a `/NNN` redirect's target exists.
-- Spell out the framework's name everywhere: page text, titles and attributes (the gate checks every page except the redirects). The three-letter acronym is allowed only inside the repo name `AVE-Core`.
-- Images carry no embedded metadata (EXIF/XMP).
-- The owner's private forbidden-terms list is checked against every built file and every tracked file (see below). If neither source of the list is available (a fork, or a machine without `_private/forbidden.txt`), `check.py` prints a warning and skips that one rule; that run has not checked it, so say so.
+- A published episode needs its notes file, and every `.md` file in `content/episodes/` needs a published episode in `episodes.toml`. Don't put unpublished notes anywhere in `content/`.
+- Every built HTML page needs balanced tags and a title. Every page except the short-link redirects also needs:
+  - a meta description and exactly one `h1`;
+  - internal `href`/`src` targets (including `url()` in `style` attributes) that exist, and `#anchors` that exist on the target page;
+  - no leftover placeholder in the page text: uppercase text in square brackets, like `[PLACEHOLDER]` or `[TODO: ...]`. `check.py --drafts` skips this one check; `make drafts` doesn't run the gate at all.
+
+  On redirect pages, the per-page HTML checks stop after tags and title, so the gate doesn't verify that a `/NNN` redirect's target exists. The file-level scans below still cover redirect pages.
+- Spell out the framework's name: the gate looks for the three-letter acronym in page text, `<title>`, and the `alt`, `aria-label`, `title` and `content` attributes of every page except the redirects. The acronym is allowed only inside the repo name `AVE-Core`. Spell it out in other places too, even where the gate doesn't look.
+- Every built `.jpg`, `.jpeg`, `.png` and `.webp` file is scanned for EXIF/XMP markers and refused if it has them. SVGs aren't scanned.
+- When the owner's private forbidden-terms list is available, every built file and every tracked file is checked against it (see below). If neither source of the list is available (a fork, or a machine without `_private/forbidden.txt`), `check.py` prints a warning and skips that one rule; that run has not checked it, so say so.
 
 ## Pull requests
 
@@ -90,10 +109,17 @@ From `LICENSING.md`. This repo holds three kinds of material, and they are licen
 
 - **DNS and domain settings.** The domain is registered elsewhere, and only its DNS points at GitHub Pages. Don't change DNS records, the Pages custom domain or HTTPS settings, or the `_github-pages-challenge-...` TXT record. The README's one-time Hosting steps are for Grant only.
 - **Squarespace.** Don't touch any Squarespace account or settings. (Apart from this file and `CLAUDE.md`, nothing in the repo refers to Squarespace.)
-- **`_private/`** is ignored by git and holds planning notes, unpublished handouts (`_private/drafts/`) and the local forbidden-terms list (`_private/forbidden.txt`). Never commit, copy, quote or summarize anything from it into the repo, a PR, a log or the site, and never build `_site_drafts/` for deployment.
-- **`FORBIDDEN_TERMS`** is a repository secret holding the owner's private list of terms that must never ship. `check.py` reads the `FORBIDDEN_TERMS` environment variable and, only if that is empty, `_private/forbidden.txt`. It matches each term case-insensitively against built and tracked files. Never print, log, echo or guess the list. Never weaken or skip that check. If the gate flags a file, remove the term without repeating it.
+- **`_private/`** is ignored by git. Per the README, `.gitignore` and `check.py`, it is where planning notes, unpublished handouts (`_private/drafts/`) and the local forbidden-terms list (`_private/forbidden.txt`) are kept. Never commit, copy, quote or summarize anything from it into the repo, a PR, a log or the site, and never build `_site_drafts/` for deployment.
+- **`FORBIDDEN_TERMS`** is the repository secret, referenced by both workflows, that holds the owner's private list of terms that must never ship. `check.py` reads the `FORBIDDEN_TERMS` environment variable, and falls back to `_private/forbidden.txt` only if that is empty. It does a case-insensitive substring match of each term against built and tracked files. Never print, log, echo or guess the list. Never weaken or skip that check. If the gate flags a file, remove the term without repeating it.
 - **Backup and recovery codes, credentials, secrets.** Never read, print, store or commit them.
 
 ## Prefer data-generated pages
 
-Change data before you hand-edit HTML. The home page, the episode list, each episode page, the `/NNN` short links and the sitemap all come from `content/episodes.toml` and `content/episodes/*.md`. Links, the tagline, the contact route and the subscribe block come from `content/site.toml`. To publish an episode, follow the README, "Publishing an episode", and also set `arc`: the build refuses a published episode without one, and the README's step 1 doesn't list it. If a page would need hand-maintained lists, add a data file and a validator in `sitegen/content.py`, not static text in a template.
+Change data before you hand-edit HTML. These come from `content/episodes.toml` and `content/episodes/*.md`:
+
+- what the home page and the episode list say about episodes;
+- each episode page;
+- the `/NNN` short links;
+- the sitemap's episode entries.
+
+Links, the tagline, the contact route and the subscribe block come from `content/site.toml`. To publish an episode, follow the README, "Publishing an episode", and also set `arc`: the build refuses a published episode without one, and the README's step 1 doesn't list it. If a page would need hand-maintained lists, add a data file and a validator in `sitegen/content.py`, not static text in a template.
