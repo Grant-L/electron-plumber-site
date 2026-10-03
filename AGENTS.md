@@ -1,0 +1,99 @@
+# AGENTS.md
+
+Instructions for coding agents working in this repo. `README.md` and `LICENSING.md` are the sources of truth; this file summarizes them and adds the working rules.
+
+## What this is
+
+The source of electron-plumber.com. `build.py` turns the templates in `sitegen/` and the data in `content/` into plain HTML in `_site/`. `check.py` then gates the result. A push to `main` builds, checks and deploys to GitHub Pages (`.github/workflows/pages.yml`).
+
+## Who builds, and how
+
+Claude builds all new features and code in this repo.
+
+Every build follows the brief-and-receipt pattern:
+
+- **Brief.** Every build starts from a written brief: what to change and why, what is off-limits, and how the result will be checked. Don't start without one. Summarize the brief in the PR description.
+- **Receipt.** Every PR carries a Claude 5.5 review receipt: a review of the PR's final diff that names the commit it reviewed and gives one verdict, `PASS`, `CHANGES` or `BLOCK`. `PASS` means it can merge. `CHANGES` means fix what the review lists, then review again. `BLOCK` means stop: don't merge, and take it to Grant. A new commit after the review needs a new receipt.
+
+## Stack
+
+- Python 3.11 or later (`pyproject.toml`: `requires-python = ">=3.11"`; both workflows use 3.12). The build and the gate (`build.py`, `check.py`, `sitegen/`) use only the standard library. Tooling is separate: tests need `pytest` (unpinned), lint needs `ruff` (CI and the pre-commit hook both pin 0.15.12), and `make mark` needs `matplotlib`. Don't add runtime dependencies.
+- `content/site.toml`: site-wide settings (title, author, site URL, links to YouTube and the two repos, tagline, contact address, newsletter endpoint, and `notes_path`, the folder in the notes repo that relative links in episode notes resolve against). Everything in it is public.
+- `content/episodes.toml`: one `[[episode]]` per announced episode. `status` (`in-production` or `published`) decides what the site says about it. A published episode needs `arc` (`historical`, `speculative` or `practical`), `youtube_id`, `date` and `excerpt`.
+- `content/episodes/<slug>.md`: episode notes, for **published** episodes only.
+- `sitegen/content.py`: loads and validates content. The build refuses bad content; it doesn't render it wrong.
+- `sitegen/pages.py`: page templates (markup and prose).
+- `sitegen/html.py`: the page shell and shared components, `NAV`, and `RECORDS` (the Corrections page route).
+- `sitegen/md.py`: a small Markdown subset. Constructs it knows it doesn't support (tables, nested lists, images, horizontal rules, `~~~` fences, headings below `####`) are build errors. Raw HTML is escaped, never passed through.
+- `build.py`: routes. The pages are `/`, `/episodes/`, `/research/`, `/corrections/`, `/about/`, `/404.html`, and one page per published episode at `/episodes/<slug>/`. Short-link redirects are `/notes`, `/errata` (the notes repo's `ERRATA.md`), `/code`, `/letter`, `/yt`, and `/NNN` for each published episode. It also writes `sitemap.xml`, `robots.txt`, `CNAME` and `.nojekyll`.
+- `static/`: copied to the site root as is. There's one stylesheet (`static/css/site.css`) and one script (`static/js/site.js`). Keep it that way.
+- `design/`: the mark (SVG and PNG) and `design/make_mark.py`, which draws it (into `design/mark/`, plus the favicons in `static/`).
+
+## Commands
+
+- `make build`: build the public site into `_site/`.
+- `make serve`: build, then serve at http://localhost:4173.
+- `make check`: build, then run the gate (links, anchors, titles, placeholders, standing rules, and the forbidden-terms scan of built and tracked files).
+- `make test`: unit tests (`python3 -m pytest -q`).
+- `make lint`: `ruff check .`.
+- `make drafts` / `make serve-drafts`: build with unpublished notes from `_private/drafts/` into `_site_drafts/` and serve at http://localhost:4174. A draft only renders for an episode already listed in `content/episodes.toml` and not yet published. These builds are for local preview only and never deploy.
+- `make mark`: redraw the mark and favicons. Needs `matplotlib`.
+- `make clean`: remove `_site/` and `_site_drafts/`.
+
+`.claude/launch.json` defines two preview servers for Claude Code, `site` (port 4173, `_site/`) and `drafts` (port 4174, `_site_drafts/`). They only serve; run `make build` or `make drafts` first.
+
+Before you open a PR, run `make lint`, `make test` and `make check`. CI (`.github/workflows/ci.yml`) runs the same three steps (`ruff check .`, `python -m pytest -q`, `make check`) on every pull request and uploads the built site as a `site-preview` artifact. The deploy workflow runs the tests and `make check`, not lint. The pre-commit config runs whitespace, end-of-file, TOML, YAML and large-file (600 KB) hooks, `ruff check`, and `make check`. Dependabot bumps the GitHub Actions versions monthly. `_site/` and `_site_drafts/` are build output and are never committed.
+
+## Without JavaScript
+
+`static/js/site.js` adds three things: the phone menu toggle, click-to-load YouTube embeds (without JS, the play button is a plain link to the video), and the arc filter on the episode list (without JS, every episode stays listed). All content is server-rendered HTML. Don't add content or navigation that only exists in JS.
+
+Known gap: at 1000px wide or less, `.nav` is hidden by CSS and only `site.js` opens it. A phone with JS off therefore has no main menu, and there's no `<noscript>` or CSS-only fallback. If you change the header, fix this; don't make it worse.
+
+## Rules the build enforces
+
+See README, "Rules the build enforces". In short:
+
+- A published episode needs its notes file, and a notes file needs a published episode. Unpublished notes never go in `content/`.
+- Every page has balanced tags and a title. Every page except the short-link redirects also has a meta description and exactly one `h1`. Every internal link, asset and anchor resolves. No `[PLACEHOLDER]` text ships.
+- Spell out the framework's name everywhere: page text, titles and attributes. The three-letter acronym is allowed only inside the repo name `AVE-Core`.
+- Images carry no embedded metadata (EXIF/XMP).
+- The owner's private forbidden-terms list is checked against every built file and every tracked file (see below). If neither source of the list is available (a fork, or a machine without `_private/forbidden.txt`), `check.py` prints a warning and skips that one rule; that run has not checked it, so say so.
+
+## Pull requests
+
+**PRs only, Grant merges; Claude 5.5 PASS required.** All work goes through a pull request. Never push to `main`: a push to `main` deploys the live site. Agents never merge. Grant reviews and merges. Branch, change, run the checks, open a PR with the brief and the review receipt.
+
+Fill in `.github/pull_request_template.md`:
+
+- **What changes on the site**: describe it in plain words.
+- **Checks**: tick each box only if it's true:
+  - `make check` and `make test` pass.
+  - You looked at it with `make serve`, at desktop and phone width.
+  - New copy follows the standing rules: every claim-bearing page shows its arc, the framework's name is spelled out, and nothing unpublished is in `content/`.
+
+In site copy, call the handouts "episode notes", never "lecture".
+
+## Licenses
+
+From `LICENSING.md`. This repo holds three kinds of material, and they are licensed differently:
+
+| What | Where | License |
+|---|---|---|
+| Code: the generator, templates' markup and logic, checks, tests, CSS, JavaScript, workflows | `build.py`, `check.py`, `sitegen/`, `tests/`, `static/css/`, `static/js/`, `Makefile`, `.github/` | MIT (`LICENSE`) |
+| Written content: the site's copy, including the text inside the templates, and episode handouts | the prose in `sitegen/pages.py`, `content/` | CC BY-NC-ND 4.0, the same license as the notes repo |
+| Brand: the name "The Electron Plumber", the mark (a Smith chart holding a trefoil) in every form, the banner image, the favicons and the social image | `design/`, `static/img/`, `static/favicon.*`, `static/apple-touch-icon.png` | All rights reserved. Not covered by the MIT license. |
+
+`sitegen/pages.py` falls under two licenses: its markup and logic are MIT, and its prose is CC BY-NC-ND 4.0. The research the site links to (Applied Vacuum Engineering) is in its own repository under Apache-2.0. Don't change license terms or move material between these categories.
+
+## Off-limits
+
+- **DNS and domain settings.** The domain is registered elsewhere, and only its DNS points at GitHub Pages. Don't change DNS records, the Pages custom domain or HTTPS settings, or the `_github-pages-challenge-...` TXT record. The README's one-time Hosting steps are for Grant only.
+- **Squarespace.** Don't touch any Squarespace account or settings. (Nothing else in the repo refers to Squarespace.)
+- **`_private/`** is ignored by git and holds planning notes, unpublished handouts (`_private/drafts/`) and the local forbidden-terms list (`_private/forbidden.txt`). Never commit, copy, quote or summarize anything from it into the repo, a PR, a log or the site, and never build `_site_drafts/` for deployment.
+- **`FORBIDDEN_TERMS`** is a repository secret holding the owner's private list of terms that must never ship. `check.py` reads the `FORBIDDEN_TERMS` environment variable and, only if that is empty, `_private/forbidden.txt`. It matches each term case-insensitively against built and tracked files. Never print, log, echo or guess the list. Never weaken or skip that check. If the gate flags a file, remove the term without repeating it.
+- **Backup and recovery codes, credentials, secrets.** Never read, print, store or commit them.
+
+## Prefer data-generated pages
+
+Change data before you hand-edit HTML. The home page, the episode list, each episode page, the `/NNN` short links and the sitemap all come from `content/episodes.toml` and `content/episodes/*.md`. Links, the tagline, the contact route and the subscribe block come from `content/site.toml`. To publish an episode, follow the README, "Publishing an episode", and also set `arc`: the build refuses a published episode without one, and the README's step 1 doesn't list it. If a page would need hand-maintained lists, add a data file and a validator in `sitegen/content.py`, not static text in a template.
