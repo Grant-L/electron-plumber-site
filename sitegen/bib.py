@@ -181,8 +181,30 @@ def _split_authors(text):
     return [p.strip() for p in parts if p.strip()]
 
 
+def _trailing_paren(raw):
+    """Split "First (Title)" into ("First", "(Title)") when the parenthetical ends it outside braces."""
+    text = raw.rstrip()
+    if not text.endswith(")"):
+        return raw, ""
+    braces = parens = 0
+    for i in range(len(text) - 1, -1, -1):
+        ch = text[i]
+        if ch == "}":
+            braces += 1
+        elif ch == "{":
+            braces -= 1
+        elif braces == 0 and ch == ")":
+            parens += 1
+        elif braces == 0 and ch == "(":
+            parens -= 1
+            if parens == 0:
+                return text[:i], text[i:]
+    return raw, ""
+
+
 def _display_name(raw):
-    """"Last, First" or "Last, Jr, First" to "First Last"; anything else as written."""
+    """"Last, First" or "Last, Jr, First" to "First Last"; anything else as written.
+    A parenthetical ending the first names, as in "Thomson, William (Lord Kelvin)", goes after the whole name."""
     pieces, depth, cur = [], 0, ""
     for ch in raw:
         if ch == "{":
@@ -195,12 +217,11 @@ def _display_name(raw):
         else:
             cur += ch
     pieces.append(cur)
-    pieces = [decode(p) for p in pieces]
-    if len(pieces) == 2:
-        return f"{pieces[1]} {pieces[0]}".strip()
-    if len(pieces) == 3:
-        return f"{pieces[2]} {pieces[0]} {pieces[1]}".strip()
-    return pieces[0]
+    if len(pieces) not in (2, 3):
+        return decode(pieces[0])
+    first, paren = _trailing_paren(pieces[-1])
+    name = " ".join(p for p in (decode(first), *(decode(p) for p in pieces[:-1])) if p)
+    return f"{name} {decode(paren)}" if paren else name
 
 
 # ---------------------------------------------------------------- entries

@@ -25,6 +25,25 @@ def test_tex_accents_math_and_specials():
     assert entry.authors == ("J\u00dcrgen M\u00fcller", "\u00c9mile Zola", "Ay\u015fe \u00c7elik")
 
 
+@pytest.mark.parametrize("author, shown", [
+    ("Thomson, William (Lord Kelvin)", "William Thomson (Lord Kelvin)"),
+    ("Strutt, John William (Lord Rayleigh)", "John William Strutt (Lord Rayleigh)"),
+    ("Thomson, (Lord Kelvin)", "Thomson (Lord Kelvin)"),
+    ("Doe, Jr, John (n{\\'e} Smith (Sr))", "John Doe Jr (n\u00e9 Smith (Sr))"),
+    ("Smith, John {(Jack)}", "John (Jack) Smith"),
+    ("Smith, John (Jack) Henry", "John (Jack) Henry Smith"),
+    ("William Thomson (Lord Kelvin)", "William Thomson (Lord Kelvin)"),
+    ("Thomson, William", "William Thomson"),
+])
+def test_a_parenthetical_ending_the_first_names_follows_the_surname(author, shown):
+    entry = bib.parse(HEAD + f"@misc{{p, author = {{{author}}}, title = {{T}}, year = {{1}}}}\n")["p"]
+    assert entry.authors == (shown,)
+
+
+def test_kelvin_in_the_copied_sources_bib_reads_surname_then_title():
+    assert bib.load(ROOT / "content" / "sources.bib")["kelvin1867vortex"].authors == ("William Thomson (Lord Kelvin)",)
+
+
 def test_math_greek_and_accent_on_dotless_i():
     entry = bib.parse(HEAD + "@misc{y, title = {On $\\alpha/2\\pi$ and Mart{\\'\\i}nez}, year = {1948}}\n")["y"]
     assert entry.fields["title"] == "On \u03b1/2\u03c0 and Mart\u00ednez"
