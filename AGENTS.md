@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Instructions for coding agents working in this repo. `README.md` and `LICENSING.md` are the sources of truth; this file summarizes them and adds the working rules.
+Instructions for coding agents working in this repo. `README.md` and `LICENSING.md` are the sources of truth; this file summarizes them and adds the working rules. Where any of these docs and the code differ, the code wins.
 
 ## What this is
 
@@ -21,10 +21,10 @@ Every build follows the brief-and-receipt pattern:
 - `content/site.toml`: site-wide settings (title, author, site URL, links to YouTube and the two repos, tagline, contact address, newsletter endpoint, and `notes_path`, the folder in the notes repo that relative links in episode notes resolve against). Everything in it is public.
 - `content/episodes.toml`: one `[[episode]]` per announced episode. `status` (`in-production` or `published`) decides what the site says about it. A published episode needs `arc` (`historical`, `speculative` or `practical`), `youtube_id`, `date` and `excerpt`.
 - `content/episodes/<slug>.md`: episode notes, for **published** episodes only.
-- `sitegen/content.py`: loads and validates content. The build refuses bad content; it doesn't render it wrong.
+- `sitegen/content.py`: loads and validates content. The build refuses bad content rather than rendering it wrong (one known exception: inline images, see `sitegen/md.py` below).
 - `sitegen/pages.py`: page templates (markup and prose).
 - `sitegen/html.py`: the page shell and shared components, `NAV`, and `RECORDS` (the Corrections page route).
-- `sitegen/md.py`: a small Markdown subset. Constructs it knows it doesn't support (tables, nested lists, images, horizontal rules, `~~~` fences, headings below `####`) are build errors. Raw HTML is escaped, never passed through.
+- `sitegen/md.py`: a small Markdown subset. Constructs it knows it doesn't support (tables, nested lists, horizontal rules, `~~~` fences, headings below `####`, and a line that begins with an image, `![`) are build errors. Raw HTML is escaped, never passed through. Known gap: an image anywhere else, such as mid-paragraph or in a list item, is not caught and renders as a stray `!` followed by a link, so don't use images in episode notes.
 - `build.py`: routes. The pages are `/`, `/episodes/`, `/research/`, `/corrections/`, `/about/`, `/404.html`, and one page per published episode at `/episodes/<slug>/`. Short-link redirects are `/notes`, `/errata` (the notes repo's `ERRATA.md`), `/code`, `/letter`, `/yt`, and `/NNN` for each published episode. It also writes `sitemap.xml`, `robots.txt`, `CNAME` and `.nojekyll`.
 - `static/`: copied to the site root as is. There's one stylesheet (`static/css/site.css`) and one script (`static/js/site.js`). Keep it that way.
 - `design/`: the mark (SVG and PNG) and `design/make_mark.py`, which draws it (into `design/mark/`, plus the favicons in `static/`).
@@ -89,7 +89,7 @@ From `LICENSING.md`. This repo holds three kinds of material, and they are licen
 ## Off-limits
 
 - **DNS and domain settings.** The domain is registered elsewhere, and only its DNS points at GitHub Pages. Don't change DNS records, the Pages custom domain or HTTPS settings, or the `_github-pages-challenge-...` TXT record. The README's one-time Hosting steps are for Grant only.
-- **Squarespace.** Don't touch any Squarespace account or settings. (Nothing else in the repo refers to Squarespace.)
+- **Squarespace.** Don't touch any Squarespace account or settings. (Apart from this file and `CLAUDE.md`, nothing in the repo refers to Squarespace.)
 - **`_private/`** is ignored by git and holds planning notes, unpublished handouts (`_private/drafts/`) and the local forbidden-terms list (`_private/forbidden.txt`). Never commit, copy, quote or summarize anything from it into the repo, a PR, a log or the site, and never build `_site_drafts/` for deployment.
 - **`FORBIDDEN_TERMS`** is a repository secret holding the owner's private list of terms that must never ship. `check.py` reads the `FORBIDDEN_TERMS` environment variable and, only if that is empty, `_private/forbidden.txt`. It matches each term case-insensitively against built and tracked files. Never print, log, echo or guess the list. Never weaken or skip that check. If the gate flags a file, remove the term without repeating it.
 - **Backup and recovery codes, credentials, secrets.** Never read, print, store or commit them.
