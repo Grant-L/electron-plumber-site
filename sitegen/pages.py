@@ -274,10 +274,17 @@ def _episode_links(ctx, ev):
     return f'<p class="small tl__episodes">In {"; ".join(out)}</p>' if out else ""
 
 
+def _era_bounds(slug):
+    """data-from/data-to on an era chip, for the axis site.js draws; an empty data-to is an open end."""
+    _, first, last = content.ERAS[slug]
+    return f' data-from="{first}" data-to="{last or ""}"'
+
+
 def _history_filters(events):
     def group(name, label_all, aria, vocab, used):
         chips = f'<button class="chip" type="button" data-value="all" aria-pressed="true">{label_all}</button>' + "".join(
-            f'<button class="chip" type="button" data-value="{slug}" aria-pressed="false">{esc(label)}</button>'
+            f'<button class="chip" type="button" data-value="{slug}"{_era_bounds(slug) if name == "era" else ""} '
+            f'aria-pressed="false">{esc(label)}</button>'
             for slug, label in vocab.items() if slug in used)
         return f'<div class="filter__chips" role="group" aria-label="{aria}" data-filter="{name}">{chips}</div>'
 
@@ -310,7 +317,7 @@ def history(ctx: Ctx):
         related = ('<p class="small tl__related">See also ' + ", ".join(f'<a href="#{esc(r)}">{esc(titles[r])}</a>' for r in ev.related)
                    + "</p>") if ev.related else ""
         items += (f'<li class="tl" id="{esc(ev.id)}" data-era="{esc(ev.era)}" data-thread="{esc(" ".join(ev.thread))}" '
-                  f'data-class="{esc(ev.cls)}" data-verified="{esc(ev.verified)}"><article>'
+                  f'data-class="{esc(ev.cls)}" data-verified="{esc(ev.verified)}" data-year="{ev.sort_key[0]}"><article>'
                   f'<p class="mono tl__date">{_when(ev)}</p>'
                   f'<h2 class="h3 tl__title"><a href="#{esc(ev.id)}">{esc(ev.title)}</a></h2>'
                   f'<p class="mono tl__meta">{meta}</p>'
