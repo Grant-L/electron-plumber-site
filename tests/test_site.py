@@ -1,4 +1,3 @@
-import shutil
 from pathlib import Path
 
 import pytest
@@ -25,25 +24,19 @@ def test_nothing_is_claimed_before_it_exists(tmp_path):
         assert not list((tmp_path / "site" / "episodes").glob("*/index.html"))
 
 
-def _copy_content(tmp_path):
-    shutil.copytree(ROOT / "content", tmp_path / "content")
-    (tmp_path / "content" / "episodes").mkdir(exist_ok=True)  # git does not track an empty folder
-    return tmp_path
-
-
 PUBLISHED = ('[[episode]]\nnumber = 1\nslug = "001-x"\ntitle = "X & <Y>"\narc = "historical"\nstatus = "published"\n'
              'youtube_id = "abcdefghijk"\ndate = "2026-01-01"\nexcerpt = "An excerpt."\n')
 
 
-def test_published_episode_without_a_handout_is_refused(tmp_path):
-    root = _copy_content(tmp_path)
+def test_published_episode_without_a_handout_is_refused(content_root):
+    root = content_root
     (root / "content" / "episodes.toml").write_text(PUBLISHED, encoding="utf-8")
     with pytest.raises(SystemExit, match="does not exist"):
         content.load(root)
 
 
-def test_unpublished_handout_in_the_public_tree_is_refused(tmp_path):
-    root = _copy_content(tmp_path)
+def test_unpublished_handout_in_the_public_tree_is_refused(content_root):
+    root = content_root
     (root / "content" / "episodes.toml").write_text(
         '[[episode]]\nnumber = 1\nslug = "001-x"\ntitle = "X"\narc = "historical"\nstatus = "in-production"\n', encoding="utf-8")
     (root / "content" / "episodes" / "001-x.md").write_text("## Learning goals\n\n- a\n", encoding="utf-8")
@@ -65,15 +58,15 @@ def test_checker_catches_a_broken_link_and_a_placeholder(tmp_path):
     (('number = 1', 'number = "1"'), "must be an integer"),
     (('status = "published"', 'status = "published"\ndraft = true'), "not a content field"),
 ])
-def test_bad_episode_data_is_refused_with_a_message(tmp_path, change, message):
-    root = _copy_content(tmp_path)
+def test_bad_episode_data_is_refused_with_a_message(content_root, change, message):
+    root = content_root
     (root / "content" / "episodes.toml").write_text(PUBLISHED.replace(*change), encoding="utf-8")
     with pytest.raises(SystemExit, match=message):
         content.load(root)
 
 
-def test_handout_without_an_episode_is_refused(tmp_path):
-    root = _copy_content(tmp_path)
+def test_handout_without_an_episode_is_refused(content_root):
+    root = content_root
     (root / "content" / "episodes" / "009-orphan.md").write_text("## Learning goals\n\n- a\n", encoding="utf-8")
     with pytest.raises(SystemExit, match="no episode"):
         content.load(root)
