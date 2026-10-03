@@ -115,6 +115,35 @@ def test_images_with_metadata_are_refused(tmp_path):
     assert any("metadata" in p for p in check.check(tmp_path / "site"))
 
 
+@pytest.mark.parametrize("payload", [b"\x00\x00\x00\x15infe\x02\x00\x00\x00\x00\x01\x00\x00Exif\x00",
+                                     b"mime\x00application/rdf+xml\x00"])
+def test_avif_with_metadata_is_refused(tmp_path, payload):
+    build.build(tmp_path / "site")
+    (tmp_path / "site" / "img" / "leak.avif").write_bytes(b"\x00\x00\x00\x1cftypavif" + payload)
+    assert any("leak.avif" in p and "metadata" in p for p in check.check(tmp_path / "site"))
+
+
+def test_shipped_images_carry_no_metadata():
+    for path in (ROOT / "static").rglob("*"):
+        if path.suffix in check.METADATA_MARKERS:
+            assert not check._has_metadata(path.suffix, path.read_bytes()), path
+
+
+def test_checker_catches_a_broken_srcset_candidate(tmp_path):
+    build.build(tmp_path / "site")
+    page = tmp_path / "site" / "about" / "index.html"
+    html = page.read_text(encoding="utf-8")
+    assert "portrait-640.avif 640w" in html
+    page.write_text(html.replace("portrait-640.avif 640w", "portrait-641.avif 640w", 1), encoding="utf-8")
+    assert any("broken link" in p and "portrait-641.avif" in p for p in check.check(tmp_path / "site"))
+
+
+def test_checker_catches_a_broken_url_in_a_stylesheet(tmp_path):
+    build.build(tmp_path / "site")
+    (tmp_path / "site" / "fonts" / "ep-mono-500.woff2").unlink()
+    assert any(p.startswith("css/site.css: broken url()") and "ep-mono-500" in p for p in check.check(tmp_path / "site"))
+
+
 def test_fonts_are_self_hosted_and_the_preload_matches_the_stylesheet(tmp_path):
     from sitegen.html import FONT_PRELOAD
     build.build(tmp_path / "site")
