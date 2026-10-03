@@ -240,8 +240,11 @@ def _citation(entry, src):
     where = venue + (f" {f['volume']}" if f.get("volume") else "") + (f" ({f['number']})" if f.get("number") else "")
     where += (f", {f['pages']}" if f.get("pages") else "")
     where = (f"{where} ({f['year']})" if where else f["year"]) + (f", {src.locator}" if src.locator else "")
-    parts = [f"<cite>{esc(f['title'])}</cite>"] + ([esc(_authors(entry.authors))] if entry.authors else []) + [esc(where)]
-    text = " ".join(p if p.endswith((".", "?", "!")) else p + "." for p in parts)
+    def stop(text):
+        return "" if text.endswith((".", "?", "!")) else "."
+
+    title, rest = f["title"], ([_authors(entry.authors)] if entry.authors else []) + [where]
+    text = f"<cite>{esc(title)}</cite>{stop(title)} " + " ".join(esc(p) + stop(p) for p in rest)
     doi, url = src.doi or f.get("doi", ""), src.url or f.get("url", "")
     if doi:
         text += f' <a href="https://doi.org/{esc(doi)}" rel="noopener">doi:{esc(doi)}</a>'

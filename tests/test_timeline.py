@@ -342,6 +342,17 @@ def test_et_al_does_not_double_its_full_stop():
     assert "A et al. J (2023)." in pages._citation(entry, content.Source(key="k", kind="primary"))
 
 
+@pytest.mark.parametrize("title, expected", [
+    ("Is it?", "<cite>Is it?</cite> A. J (2023)."),
+    ("It is!", "<cite>It is!</cite> A. J (2023)."),
+    ("It is", "<cite>It is</cite>. A. J (2023)."),
+    ("Q & <A>?", "<cite>Q &amp; &lt;A&gt;?</cite> A. J (2023)."),
+])
+def test_a_title_ending_in_punctuation_gets_no_extra_full_stop(title, expected):
+    entry = bib.Entry("article", "k", {"title": title, "journal": "J", "year": "2023"}, ("A",))
+    assert expected in pages._citation(entry, content.Source(key="k", kind="primary"))
+
+
 def test_claims_render_only_for_published_episodes(timeline_root):
     text = EVENT.replace('era = "aether"', 'era = "aether"\nclaims = ["ep001-c03"]')
     html = render(timeline_root, text)  # Episode 001 is in production
@@ -403,6 +414,14 @@ def test_without_javascript_the_narrow_header_still_shows_the_nav(tmp_path):
     for page in ("index.html", "history/index.html", "episodes/index.html", "404.html"):
         head = (tmp_path / "site" / page).read_text(encoding="utf-8").split("</head>")[0]
         assert f"<noscript><style>@media (max-width: {breakpoint}px) {{ .nav-toggle {{ display: none; }}" in head
+
+
+def test_the_menu_breakpoint_matches_in_site_css_and_html_py():
+    from sitegen import html
+    css = (ROOT / "static" / "css" / "site.css").read_text(encoding="utf-8")
+    in_css = re.findall(r"@media \(max-width: (\d+)px\) \{\n  \.nav-toggle \{ display: flex; \}", css)
+    in_html = re.findall(r"@media \(max-width: (\d+)px\)", html.NOSCRIPT_NAV)
+    assert len(in_css) == 1 and in_html == in_css
 
 
 def test_home_and_corrections_link_to_history(tmp_path):
