@@ -158,6 +158,66 @@ def load(root: Path, drafts: bool = False):
     return site, episodes
 
 
+# ---------------------------------------------------------------- the Start here page
+START_TARGETS = {"episodes/", "history/", "research/", "corrections/", "about/"}
+MAX_START_STEPS = 5
+START_EPISODE = re.compile(r"episode:(\d+)")
+
+
+@dataclass
+class Step:
+    target: str
+    kind: str  # "episode" or "route"
+    episode: object = None
+    route: str = ""
+    anchor: str = ""
+
+
+def load_start(root: Path, episodes):
+    """content/start.toml as a list of Step. Each step names a target and nothing else: its words come from
+    the target page or the episode's data, so this file cannot add a claim."""
+    path = root / "content" / "start.toml"
+    if not path.is_file():
+        raise ContentError("content/start.toml does not exist")
+    raw = tomllib.loads(path.read_text(encoding="utf-8"))
+    if set(raw) - {"step"}:
+        raise ContentError(f"start.toml: unknown key {sorted(set(raw) - {'step'})[0]!r} (only [[step]] tables)")
+    items = raw.get("step", [])
+    if not isinstance(items, list) or not all(isinstance(i, dict) for i in items):
+        raise ContentError("start.toml: steps must be [[step]] tables")
+    if not items:
+        raise ContentError("start.toml: no [[step]] entries")
+    if len(items) > MAX_START_STEPS:
+        raise ContentError(f"start.toml: {len(items)} steps, at most {MAX_START_STEPS}")
+    by_number = {e.number: e for e in episodes}
+    steps, seen = [], set()
+    for n, item in enumerate(items, 1):
+        where = f"start.toml, step {n}"
+        if set(item) - {"target"}:
+            raise ContentError(f"{where}: unknown key {sorted(set(item) - {'target'})[0]!r} (the only field is target)")
+        target = item.get("target")
+        if not isinstance(target, str):
+            raise ContentError(f"{where}: target must be a string")
+        if target in seen:
+            raise ContentError(f"{where}: duplicate target {target!r}")
+        seen.add(target)
+        m = START_EPISODE.fullmatch(target)
+        if m:
+            ep = by_number.get(int(m.group(1)))
+            if ep is None:
+                raise ContentError(f"{where}: no episode {m.group(1)} in episodes.toml")
+            if not ep.live and not ep.announce:
+                raise ContentError(f"{where}: episode {ep.number} is not announced")
+            steps.append(Step(target, "episode", episode=ep))
+            continue
+        route, hash_, anchor = target.partition("#")
+        if route not in START_TARGETS or (hash_ and not anchor):
+            raise ContentError(f"{where}: target {target!r} must be episode:N or one of "
+                               f"{', '.join(sorted(START_TARGETS))}, with an optional #anchor")
+        steps.append(Step(target, "route", route=route, anchor=anchor))
+    return steps
+
+
 # ---------------------------------------------------------------- the History timeline
 @dataclass
 class Source:

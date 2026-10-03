@@ -16,6 +16,7 @@ make test       # unit tests (pytest)
 |---|---|
 | `content/site.toml` | Site-wide settings: links, tagline, contact address, newsletter endpoint. |
 | `content/episodes.toml` | One entry per announced episode. Status drives everything the site says about it. |
+| `content/start.toml` | The Start here page's steps, one `[[step]]` each with a `target` only: `episode:N` or an existing page. Each step's words come from that page's title and meta description, or from the episode's data. |
 | `content/episodes/*.md` | Episode notes for **published** episodes: the same file that is published in the [notes repo](https://github.com/Grant-L/electron-plumber-notes). |
 | `content/timeline.toml` | The History page's events, one `[[event]]` each. **Generated** by `tools/export_timeline.py` from the Historian's confirmed, public entries; never edited by hand. A missing file means an empty timeline. |
 | `content/sources.bib` | A verbatim copy of the notes repo's `sources.bib`, with one header line naming the notes commit it was copied from. Every timeline source key must be in it. |
