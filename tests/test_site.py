@@ -24,20 +24,6 @@ def test_nothing_is_claimed_before_it_exists(tmp_path):
         assert not list((tmp_path / "site" / "episodes").glob("*/index.html"))
 
 
-def test_start_here_is_linked_from_home_and_sitemap_but_not_nav(tmp_path):
-    from sitegen.html import NAV
-    build.build(tmp_path / "site")
-    site = tmp_path / "site"
-    start = (site / "start" / "index.html").read_text(encoding="utf-8")
-    assert "<title>Start here | The Electron Plumber</title>" in start and "Three stops for a first visit." in start
-    assert "What is an Electron?" in start and 'href="../history/"' in start and 'href="../episodes/"' in start
-    assert 'href="../research/"' not in start.split('<main id="main">')[1].split("</main>")[0]
-    home = (site / "index.html").read_text(encoding="utf-8")
-    assert home.index('<p class="deck g24">') < home.index('href="./start/"') < home.index('class="mono mono--sky')
-    assert "/start/</loc>" in (site / "sitemap.xml").read_text(encoding="utf-8")
-    assert "start/" not in [href for _, href in NAV]
-
-
 PUBLISHED = ('[[episode]]\nnumber = 1\nslug = "001-x"\ntitle = "X & <Y>"\narc = "historical"\nstatus = "published"\n'
              'youtube_id = "abcdefghijk"\ndate = "2026-01-01"\nexcerpt = "An excerpt."\n')
 

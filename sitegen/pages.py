@@ -51,7 +51,7 @@ def home(ctx: Ctx):
             f'alt="Channel logo: a Smith chart with a three-lobed closed curve inside it"></div>'
             f'<div class="plate-block">{kicker("The Electron Plumber")}<hr class="rule rule--plate g20">'
             f'<h1 class="h1 h1--hero g36">What is an electron?</h1><p class="deck g24">{DECK}</p>'
-            f'<div class="g20">{arrow("Start here", ctx.to("start/"))}</div>'
+            f'<div class="g20">{arrow(START_TITLE, ctx.to("start/"))}</div>'
             f'<div class="mono mono--sky g28">{esc(s["tagline"])}</div>{status}'
             f'<div class="cluster cluster--stack g40">{actions}</div></div>')
 
@@ -116,29 +116,10 @@ def home(ctx: Ctx):
                 body=hero + orient + episode_row + author_row + records_row + disclosure + subscribe(ctx))
 
 
-# ------------------------------------------------------------------ START HERE
-def start(ctx: Ctx):
-    head = ('<div class="page-head"><h1 class="h1 h1--page">Start here</h1>'
-            '<p class="deck deck--sm g20">Three stops for a first visit.</p></div>')
-
-    first = next((e for e in ctx.episodes if e.number == 1), None)
-    if first and first.live:
-        watch = arrow(f"Watch {first.serial}", ctx.to(first.url))
-    else:
-        watch = mono("In production")
-    question = row("The question", (f'<h2 class="h2">What is an Electron?</h2><p class="prose g20">{DECK}</p>'
-                                    f'<div class="g24">{watch}</div>'), "row--tight")
-    past = row("The history", (f'<div>{badge("historical")}</div><h2 class="h2 g20">History</h2><p class="prose g20">{HISTORY_DESCRIPTION}</p>'
-                               f'<div class="g24">{arrow("History", ctx.to("history/"))}</div>'), "row--tight")
-    shelf = row("The episodes", ('<h2 class="h2">Episodes</h2>'
-                                 '<p class="prose g20">Every episode of The Electron Plumber, with its notes, sources and corrections.</p>'
-                                 f'<div class="g24">{arrow("Episodes", ctx.to("episodes/"))}</div>'), "row--tight")
-
-    return page(ctx, title="Start here", description="Where to begin: the question, the history, then the episodes.",
-                body=head + question + past + shelf + subscribe(ctx))
-
-
 # ------------------------------------------------------------------ EPISODES
+EPISODES_DESCRIPTION = "Every episode of The Electron Plumber, with its notes, sources and corrections."
+
+
 def episodes(ctx: Ctx):
     published, upcoming = ctx.published, ctx.upcoming
     head = ('<div class="page-head"><h1 class="h1 h1--page">Episodes</h1>'
@@ -173,9 +154,8 @@ def episodes(ctx: Ctx):
     if not rows:
         rows = '<div class="empty"><p class="prose">Nothing published yet.</p></div>'
 
-    return page(ctx, title="Episodes", active="Episodes",
-                description="Every episode of The Electron Plumber, with its notes, sources and corrections.",
-                body=head + filt + rows + subscribe(ctx))
+    title, description = PAGE_TEXT["episodes/"]
+    return page(ctx, title=title, active=title, description=description, body=head + filt + rows + subscribe(ctx))
 
 
 # ------------------------------------------------------------------ EPISODE
@@ -314,13 +294,14 @@ def _history_filters(events):
 
 
 def history(ctx: Ctx):
+    title, description = PAGE_TEXT["history/"]
     events = list(ctx.timeline)
     head = (f'<div class="page-head"><div class="notice">{badge("historical")}<div class="mono mono--body">Historical record.</div></div>'
             f'<h1 class="h1 h1--page g20">History</h1><p class="deck deck--sm g20">{HISTORY_INTRO}</p>'
             f'<p class="small muted g16">{HISTORY_LEGEND}</p></div>')
     if not events:
         body = '<div class="empty"><p class="prose">Nothing published yet.</p></div>'
-        return page(ctx, title="History", active="History", description=HISTORY_DESCRIPTION, body=head + body + subscribe(ctx))
+        return page(ctx, title=title, active=title, description=description, body=head + body + subscribe(ctx))
 
     titles = {e.id: e.title for e in events}
     items = ""
@@ -342,11 +323,15 @@ def history(ctx: Ctx):
                   f'<p class="mono tl__checked">Checked {_time(ev.checked_date)}</p>'
                   f'{_episode_links(ctx, ev)}{related}</article></li>')
     timeline = row("Timeline", f'<ol class="timeline">{items}</ol>', "row--tight")
-    return page(ctx, title="History", active="History", description=HISTORY_DESCRIPTION,
+    return page(ctx, title=title, active=title, description=description,
                 body=head + _history_filters(events) + timeline + subscribe(ctx))
 
 
 # ------------------------------------------------------------------ RESEARCH
+RESEARCH_DESCRIPTION = ("Applied Vacuum Engineering: a falsifiable impedance model of the vacuum. Explicitly speculative, "
+                        "with its kill criteria stated up front.")
+
+
 def research(ctx: Ctx):
     core = ctx.site["core_repo"]
     letter = core + "/blob/main/papers/2026_birefringence_letter/sve_vacuum_birefringence_letter.pdf"
@@ -419,13 +404,16 @@ def research(ctx: Ctx):
               "before any pump-on data exists.", "GitHub",
               core + "/tree/main/claim-prereg-ots")), "row--tight")
 
-    return page(ctx, title="Research", active="Research", arc="speculative",
-                description="Applied Vacuum Engineering: a falsifiable impedance model of the vacuum. Explicitly speculative, "
-                            "with its kill criteria stated up front.",
+    title, description = PAGE_TEXT["research/"]
+    return page(ctx, title=title, active=title, arc="speculative", description=description,
                 body=head + wager + die + axioms + formval + read)
 
 
 # ------------------------------------------------------------------ RECORDS (labels, claim format, ledger, sources)
+RECORDS_DESCRIPTION = ("Corrections are part of the product here, not an embarrassment. "
+                       "Labels, claim format, the ledger, sources and licenses.")
+
+
 def records(ctx: Ctx):
     notes = ctx.site["notes_repo"]
     head = (f'<div class="page-head" style="padding-bottom: 72px;">{kicker(RECORDS[0])}<h1 class="h1 g16">Spotted an error? Open an issue.</h1>'
@@ -477,17 +465,20 @@ def records(ctx: Ctx):
         + lic("Episode notes", "CC BY-NC-ND 4.0: share with attribution; no commercial use; no derivatives.", "The notes repo", notes)
         + lic("Research code", "Apache-2.0.", "AVE-Core on GitHub", ctx.site["core_repo"]) + '</div>'), "row--tight")
 
-    return page(ctx, title=RECORDS[0], active=RECORDS[0],
-                description="Corrections are part of the product here, not an embarrassment. Labels, claim format, the ledger, sources and licenses.",
-                body=head + labels + claim + ledger + sources)
+    title, description = PAGE_TEXT[RECORDS[1]]
+    return page(ctx, title=title, active=title, description=description, body=head + labels + claim + ledger + sources)
 
 
 # ------------------------------------------------------------------ ABOUT
+ABOUT_DESCRIPTION = "{author} is a staff electrical engineer in grid-scale energy storage, asking what an electron is. Views my own."
+
+
 def about(ctx: Ctx):
     s = ctx.site
     head = (f'<div class="about-head">{_portrait(ctx, "portrait--lg")}<div class="stack">{kicker("About")}'
             f'<h1 class="h1 h1--page g16">{esc(s["author"])}</h1><div class="tagline g20">{esc(s["tagline"])}</div>'
-            f'<p class="prose g32">{ABOUT}</p><div class="mono g24">Views my own.</div></div></div>')
+            f'<p class="prose g32">{ABOUT}</p><div class="mono g24">Views my own.</div>'
+            f'<div class="g24">{arrow(START_TITLE, ctx.to("start/"))}</div></div></div>')
 
     def route(name, text, kind, href):
         return (f'<a class="trow" href="{esc(href)}" rel="noopener"><div class="trow__name trow__name--sm">{name}</div>'
@@ -503,9 +494,54 @@ def about(ctx: Ctx):
                   "row--panel row--tight")
     contact = contact.replace('<section class="row ', '<section id="contact" class="row ', 1)
 
-    return page(ctx, title="About", active="About",
-                description=f"{s['author']} is a staff electrical engineer in grid-scale energy storage, asking what an electron is. Views my own.",
-                body=head + contact)
+    title, description = PAGE_TEXT["about/"]
+    return page(ctx, title=title, active=title, description=description.format(author=s["author"]), body=head + contact)
+
+
+# ------------------------------------------------------------------ START HERE
+# The title and meta description of each page a Start here step can point at. Descriptions are format
+# strings: {author} is the site author.
+PAGE_TEXT = {"episodes/": ("Episodes", EPISODES_DESCRIPTION), "history/": ("History", HISTORY_DESCRIPTION),
+             "research/": ("Research", RESEARCH_DESCRIPTION), RECORDS[1]: (RECORDS[0], RECORDS_DESCRIPTION),
+             "about/": ("About", ABOUT_DESCRIPTION)}
+ROUTE_ARCS = {"history/": "historical", "research/": "speculative"}
+START_TITLE = "Start here"
+START_DESCRIPTION = "Where to begin: the question, the history, then the episodes."
+START_DECK = "Three stops for a first visit."
+
+
+def _start_step(ctx, n, step):
+    if step.kind == "episode":
+        ep = step.episode
+        if ep.live:
+            heading = f'<a href="{ctx.to(ep.url)}">{esc(ep.title)}</a>'
+            text, arc = f'<p class="small g12">{esc(ep.excerpt)}</p>', ep.arc
+        else:
+            heading = esc(ep.title)
+            text, arc = f'<p class="small g12">{DECK}</p>{mono(ep.serial + " is in production", "g12")}', None
+    else:
+        title, description = PAGE_TEXT[step.route]
+        href = ctx.to(step.route) + (f"#{step.anchor}" if step.anchor else "")
+        heading = f'<a href="{esc(href)}">{esc(title)}</a>'
+        text = f'<p class="small g12">{esc(description.format(author=ctx.site["author"]))}</p>'
+        arc = ROUTE_ARCS.get(step.route)
+        if step.route == "episodes/":
+            latest = (ctx.published or [None])[0]
+            if latest:
+                text += f'<div class="g20">{arrow(f"Watch {latest.serial}", ctx.to(latest.url))}</div>'
+            if ctx.upcoming:
+                text += _next_line(ctx, ctx.upcoming)
+    head = f'<h2 class="h3">{heading}</h2>' + (badge(arc) if arc else "")
+    return (f'<li class="trow"><div class="trow__n" aria-hidden="true">{n:02d}</div>'
+            f'<div class="stack"><div class="cluster cluster--tight">{head}</div>{text}</div></li>')
+
+
+def start(ctx: Ctx):
+    head = (f'<div class="page-head"><h1 class="h1 h1--page">{START_TITLE}</h1>'
+            f'<p class="deck deck--sm g20">{START_DECK}</p></div>')
+    steps = "".join(_start_step(ctx, n, step) for n, step in enumerate(ctx.start, 1))
+    return page(ctx, title=START_TITLE, active=None, description=START_DESCRIPTION,
+                body=head + row("", f'<ol class="start-steps">{steps}</ol>') + subscribe(ctx))
 
 
 # ------------------------------------------------------------------ 404 + redirects

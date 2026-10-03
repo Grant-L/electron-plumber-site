@@ -25,6 +25,7 @@ def build(out: Path, drafts: bool = False):
 
     site, episodes = content.load(ROOT, drafts=drafts)
     timeline = content.load_timeline(ROOT, episodes)
+    start = content.load_start(ROOT, episodes)
     site["_root"] = str(ROOT)
 
     if out.exists():
@@ -42,12 +43,12 @@ def build(out: Path, drafts: bool = False):
             written.append(path)
 
     def ctx(path, **kw):
-        return Ctx(site, episodes, path, version, timeline=timeline, **kw)
+        return Ctx(site, episodes, path, version, timeline=timeline, start=start, **kw)
 
     write("index.html", pages.home(ctx("")))
-    write("start/index.html", pages.start(ctx("start/")))
     write("episodes/index.html", pages.episodes(ctx("episodes/")))
     write("history/index.html", pages.history(ctx("history/")))
+    write("start/index.html", pages.start(ctx("start/")))
     write("research/index.html", pages.research(ctx("research/")))
     write(f"{RECORDS[1]}index.html", pages.records(ctx(RECORDS[1])))
     write("about/index.html", pages.about(ctx("about/")))
