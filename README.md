@@ -35,12 +35,13 @@ make test       # unit tests (pytest)
 3. Add the next episode as `status = "in-production"` if its title may be public.
 4. Open a pull request. CI builds and checks it; merging deploys it.
 
-The home page, the episode list and the short link (`/001`) follow from that data. Until an episode is published the site says "in production" and offers nothing to watch.
+The home page, the episode list, the short link (`/001`) and `/feed.atom`, an Atom feed of published episodes, follow from that data. Until an episode is published the site says "in production" and offers nothing to watch.
 
 ## Rules the build enforces
 
 - A published episode without a handout is refused. So is a handout for an episode that is not published.
 - Every page has a title, a description and exactly one `h1`. Every internal link and anchor resolves. No `[PLACEHOLDER]` text ships.
+- Every built `.atom` and `.xml` file is well-formed. The feed has its required elements, its links to the site resolve, and its titles and summaries follow the placeholder and spelled-out-name rules.
 - The framework's name is spelled out on the site, in page text, titles and attributes alike.
 - Images carry no embedded metadata. TOML text is escaped wherever it lands in a page.
 - The owner's private list of terms that must never ship is checked against every built file and every tracked file. The list is not in this repo: it comes from `_private/forbidden.txt` locally and from the `FORBIDDEN_TERMS` repository secret in CI. Without it (a fork, for example) that one rule is skipped with a warning.
