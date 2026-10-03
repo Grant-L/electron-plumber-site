@@ -127,6 +127,7 @@ def footer(ctx):
             + column("Contact", "Report an error, or get in touch", ctx.to("about/") + "#contact", external=False))
     legal = "".join(mono(t) for t in ("Views my own.", "Episode notes: CC BY-NC-ND 4.0", "Research code: Apache-2.0",
                                       f"&copy; 2026 {esc(s['author'])}"))
+    legal += f'<a class="mono" href="{ctx.to("feed.atom")}">Feed</a>'
     return (f'<footer class="site-footer"><div class="inner"><div class="footer__plate">'
             f'<img src="{ctx.to("img/mark-plate.svg")}" alt="" width="104" height="104">'
             f'<div><div class="footer__title">The Electron Plumber</div><div class="footer__tag">{esc(s["tagline"])}</div></div></div>'
@@ -177,6 +178,7 @@ def page(ctx, *, title, description, body, active=None, arc=None, noindex=False)
 <link rel="icon" href="{ctx.to('favicon.svg')}" type="image/svg+xml">
 <link rel="icon" href="{ctx.to('favicon.png')}" sizes="144x144" type="image/png">
 <link rel="apple-touch-icon" href="{ctx.to('apple-touch-icon.png')}">
+<link rel="alternate" type="application/atom+xml" title="The Electron Plumber: episodes" href="{ctx.to('feed.atom')}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{FONTS}">
