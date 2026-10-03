@@ -5,6 +5,7 @@
 
 Every HTML page: balanced tags, no duplicate ids, a title, a description, exactly one h1, internal links, assets and
 anchors that resolve, no leftover [PLACEHOLDER] text, and the framework's name spelled out.
+Every .atom and .xml file: well-formed, links on the site's origin resolve, and feed text follows the same rules.
 Every built file and every tracked source file: none of the owner's private forbidden terms.
 Every image: no embedded metadata.
 """
@@ -12,6 +13,7 @@ import os
 import re
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -24,6 +26,7 @@ ACRONYM = re.compile(r"\bAVE\b(?!-Core)")
 PLACEHOLDER = re.compile(r"\[[A-Z][A-Z0-9_ ,.'-]{2,}(?::[^\]\n]*)?\]")
 STYLE_URL = re.compile(r"url\(\s*['\"]?([^'\")]+)['\"]?\s*\)")
 TEXT_ATTRS = ("alt", "aria-label", "title", "content")
+ATOM = "http://www.w3.org/2005/Atom"
 
 
 def forbidden_terms():
@@ -161,6 +164,53 @@ def check(site: Path, drafts: bool = False):
                 other = parsed.get(target.resolve())
                 if other and url.fragment not in other.ids:
                     say(f"missing anchor {link!r}")
+    return problems + check_xml(site, drafts)
+
+
+def check_xml(site: Path, drafts: bool = False):
+    """Every built .atom and .xml file: well-formed; an Atom feed has its required elements; every href on the
+    site's own origin resolves, anchors included; feed text keeps the placeholder and acronym rules."""
+    site = site.resolve()
+    problems = []
+    cname = site / "CNAME"
+    origin = f"https://{cname.read_text(encoding='utf-8').strip()}" if cname.is_file() else None
+    for path in sorted(p for p in site.rglob("*") if p.is_file() and p.suffix in (".atom", ".xml")):
+        rel = path.relative_to(site).as_posix()
+        say = lambda msg, rel=rel: problems.append(f"{rel}: {msg}")  # noqa: E731
+        try:
+            root = ET.parse(path).getroot()
+        except ET.ParseError as exc:
+            say(f"not well-formed XML ({exc})")
+            continue
+        if path.suffix == ".atom":
+            if root.tag != f"{{{ATOM}}}feed":
+                say(f"root element is {root.tag!r}, not an Atom feed")
+            for tag in ("id", "title", "updated"):
+                if root.find(f"{{{ATOM}}}{tag}") is None:
+                    say(f"missing <{tag}>")
+            if not any(link.get("rel") == "self" for link in root.findall(f"{{{ATOM}}}link")):
+                say('missing <link rel="self">')
+        for el in root.iter():
+            if el.tag.rpartition("}")[2] in ("title", "summary", "subtitle"):
+                text = el.text or ""
+                if not drafts and PLACEHOLDER.search(text):
+                    say(f"leftover placeholder {PLACEHOLDER.search(text).group(0)!r}")
+                if ACRONYM.search(text):
+                    say("the framework's name must be spelled out (three-letter acronym found)")
+            href = el.get("href") or ""
+            if not origin or not (href == origin or href.startswith(origin + "/")):
+                continue
+            url = urlparse(href)
+            target = site / unquote(url.path).lstrip("/")
+            if target.is_dir():
+                target = target / "index.html"
+            if not target.is_file():
+                say(f"broken link {href!r}")
+            elif url.fragment and target.suffix == ".html":
+                page = Page()
+                page.feed(target.read_text(encoding="utf-8"))
+                if url.fragment not in page.ids:
+                    say(f"missing anchor {href!r}")
     return problems
 
 

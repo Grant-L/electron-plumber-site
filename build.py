@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 from urllib.parse import urlparse
 
-from sitegen import content, pages
+from sitegen import content, feed, pages
 from sitegen.html import RECORDS, Ctx
 
 ROOT = Path(__file__).resolve().parent
@@ -71,6 +71,7 @@ def build(out: Path, drafts: bool = False, root: Path = ROOT):
     for short, target in redirects.items():
         canonical = f"{base}/{target.removeprefix('../')}" if target.startswith("../") else target
         write(f"{short}/index.html", pages.redirect(target, canonical), listed=False)
+    write("feed.atom", feed.episodes_feed(site, [e for e in episodes if e.status == "published" and not e.draft]), listed=False)
 
     urls = "".join(f"<url><loc>{base}/{p.removesuffix('index.html')}</loc></url>" for p in written)
     write("sitemap.xml", f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n', listed=False)
