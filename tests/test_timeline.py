@@ -15,7 +15,7 @@ id = "1843-hamilton-quaternions"
 date = "1843-10-16"
 title = "Fixture title"
 summary = "Fixture summary."
-era = "aether"
+era = "ether"
 class = "theory"
 thread = ["vectors-quaternions"]
 verified = "primary"
@@ -39,8 +39,8 @@ def event(id, date, era, cls, thread, key, *, basis="", extra=""):
 
 # The Historian's v1 seed (spec section 1): dates, bases, eras, classes, threads and source keys.
 SEED = "\n".join([
-    event("1843-hamilton-quaternions", "1843-10-16", "aether", "theory", ["vectors-quaternions"], "hamilton1865letter"),
-    event("1887-michelson-morley", "1887-11", "aether", "experiment", ["ether"], "michelson1887ether", basis="published"),
+    event("1843-hamilton-quaternions", "1843-10-16", "ether", "theory", ["vectors-quaternions"], "hamilton1865letter"),
+    event("1887-michelson-morley", "1887-11", "ether", "experiment", ["ether"], "michelson1887ether", basis="published"),
     event("1905-einstein-electrodynamics", "1905-06-30", "relativity", "theory", ["relativity", "electromagnetism"],
           "einstein1905elektrodynamik", basis="received"),
     event("1928-dirac-electron", "1928-02-01", "quantum-electron", "theory", ["quantum", "spin-and-moment", "g-factor"],
@@ -117,8 +117,8 @@ LONG = "x" * 121
 
 @pytest.mark.parametrize("change, message", [
     (('title = "Fixture title"\n', ""), "title"),
-    (('era = "aether"', 'era = "aether"\ncolour = "red"'), "colour"),
-    (('era = "aether"', 'era = "aether"\ntags = ["theory"]'), "tags"),
+    (('era = "ether"', 'era = "ether"\ncolour = "red"'), "colour"),
+    (('era = "ether"', 'era = "ether"\ntags = ["theory"]'), "tags"),
     (('"1843-10-16"', '"1843-13"'), "not a real date"),
     (('"1843-10-16"', '"1843-02-30"'), "not a real date"),
     (('"1843-10-16"', '"97"'), "YYYY"),
@@ -141,19 +141,19 @@ LONG = "x" * 121
     (('"Historian"', '"historian bot 2"'), "public display name"),
     (('"2026-10-03"', '"2999-01-01"'), "in the future"),
     (('"2026-10-03"', '"2026-10"'), "full date"),
-    (('era = "aether"', 'era = "aether"\nclaims = ["ep1-c3"]'), "must look like ep001-c03"),
-    (('era = "aether"', 'era = "aether"\nclaims = ["ep009-c01"]'), "not in episodes.toml"),
-    (('era = "aether"', 'era = "aether"\nclaims = ["ep001-c03", "ep001-c03"]'), "duplicate"),
-    (('era = "aether"', 'era = "aether"\nclaims = ["ep001-c03"]\nepisodes = [1]'), "already linked through a claim"),
-    (('era = "aether"', 'era = "aether"\nepisodes = [9]'), "not in episodes.toml"),
-    (('era = "aether"', 'era = "aether"\nrelated = ["1900-nothing"]'), "related id"),
-    (('era = "aether"', 'era = "aether"\nrelated = ["1843-hamilton-quaternions"]'), "related id"),
+    (('era = "ether"', 'era = "ether"\nclaims = ["ep1-c3"]'), "must look like ep001-c03"),
+    (('era = "ether"', 'era = "ether"\nclaims = ["ep009-c01"]'), "not in episodes.toml"),
+    (('era = "ether"', 'era = "ether"\nclaims = ["ep001-c03", "ep001-c03"]'), "duplicate"),
+    (('era = "ether"', 'era = "ether"\nclaims = ["ep001-c03"]\nepisodes = [1]'), "already linked through a claim"),
+    (('era = "ether"', 'era = "ether"\nepisodes = [9]'), "not in episodes.toml"),
+    (('era = "ether"', 'era = "ether"\nrelated = ["1900-nothing"]'), "related id"),
+    (('era = "ether"', 'era = "ether"\nrelated = ["1843-hamilton-quaternions"]'), "related id"),
     (('"Fixture summary."', '"See [the letter](https://example.org/)."'), "links"),
     (('"Fixture title"', f'"{LONG}"'), "title must be"),
     (('"Fixture title"', '"Two\\nlines"'), "title must be"),
     (('"Fixture summary."', '"' + "y" * 601 + '"'), "summary must be"),
-    (('era = "aether"\n', ""), "era"),
-    (('era = "aether"', 'era = "classical"'), "unknown era"),
+    (('era = "ether"\n', ""), "era"),
+    (('era = "ether"', 'era = "classical"'), "unknown era"),
     (('class = "theory"\n', ""), "'class'"),
     (('class = "theory"', 'class = "mathematics"'), "unknown class"),
     (('thread = ["vectors-quaternions"]', "thread = []"), "1 to 3"),
@@ -183,7 +183,7 @@ def test_secondary_only_loads_without_a_primary_source(timeline_root):
 
 
 # ------------------------------------------------------------------ 5-7a: date basis, bounds, order, eras
-KELVIN = event("1867-kelvin-vortex-atoms", "1867-02-18", "aether", "theory", ["vortex-atoms"], "kelvin1867vortex", basis="read")
+KELVIN = event("1867-kelvin-vortex-atoms", "1867-02-18", "ether", "theory", ["vortex-atoms"], "kelvin1867vortex", basis="read")
 
 
 def test_kelvin_read_date_renders_with_its_basis(timeline_root):
@@ -191,7 +191,7 @@ def test_kelvin_read_date_renders_with_its_basis(timeline_root):
     assert 'Read <time datetime="1867-02-18">18 February 1867</time>' in html
 
 
-def bounded(id, extra, era="aether"):
+def bounded(id, extra, era="ether"):
     return event(id, "", era, "theory", ["ether"], "hamilton1865letter", extra=extra)
 
 
@@ -218,8 +218,8 @@ def test_bad_bounds_are_refused(timeline_root, extra, message):
 
 
 def test_a_bound_sorts_at_its_own_year(timeline_root):
-    e1849 = event("1849-a", "1849", "aether", "theory", ["ether"], "hamilton1865letter")
-    e1851 = event("1851-c", "1851", "aether", "theory", ["ether"], "hamilton1865letter")
+    e1849 = event("1849-a", "1849", "ether", "theory", ["ether"], "hamilton1865letter")
+    e1851 = event("1851-c", "1851", "ether", "theory", ["ether"], "hamilton1865letter")
     before = bounded("1850-b", 'not_after = "1850"')
     assert [e.id for e in load(timeline_root, "\n".join([e1849, before, e1851]))] == ["1849-a", "1850-b", "1851-c"]
     with pytest.raises(SystemExit, match="out of order"):
@@ -229,7 +229,7 @@ def test_a_bound_sorts_at_its_own_year(timeline_root):
 
 
 def test_out_of_order_events_are_refused_naming_both(timeline_root):
-    later = event("1887-later", "1887", "aether", "experiment", ["ether"], "michelson1887ether")
+    later = event("1887-later", "1887", "ether", "experiment", ["ether"], "michelson1887ether")
     with pytest.raises(SystemExit, match="1843-hamilton-quaternions.*1887-later"):
         load(timeline_root, later + "\n" + EVENT)
 
@@ -251,7 +251,7 @@ def test_an_unquoted_toml_date_is_accepted(timeline_root):
 
 @pytest.mark.parametrize("date, era, ok", [
     ("1904", "relativity", False), ("1905", "relativity", True), ("1924", "relativity", True), ("1925", "relativity", False),
-    ("2025", "precision", True), ("1949", "precision", False), ("1904", "aether", True),
+    ("2025", "precision", True), ("1949", "precision", False), ("1904", "ether", True),
 ])
 def test_era_bounds(timeline_root, date, era, ok):
     text = event(f"{date}-x", date, era, "theory", ["relativity"], "einstein1905elektrodynamik")
@@ -263,7 +263,7 @@ def test_era_bounds(timeline_root, date, era, ok):
 
 
 def test_a_bounds_event_is_checked_on_its_sort_key_year(timeline_root):
-    with pytest.raises(SystemExit, match="1905 is outside the 'aether' era"):
+    with pytest.raises(SystemExit, match="1905 is outside the 'ether' era"):
         load(timeline_root, bounded("1905-x", 'not_after = "1905"'))
 
 
@@ -354,7 +354,7 @@ def test_a_title_ending_in_punctuation_gets_no_extra_full_stop(title, expected):
 
 
 def test_claims_render_only_for_published_episodes(timeline_root):
-    text = EVENT.replace('era = "aether"', 'era = "aether"\nclaims = ["ep001-c03"]')
+    text = EVENT.replace('era = "ether"', 'era = "ether"\nclaims = ["ep001-c03"]')
     html = render(timeline_root, text)  # Episode 001 is in production
     assert "ep001-c03" not in html and "episodes/001" not in html
     (timeline_root / "content" / "episodes.toml").write_text(PUBLISHED_EP1, encoding="utf-8")
@@ -364,18 +364,27 @@ def test_claims_render_only_for_published_episodes(timeline_root):
 
 
 def test_an_unpublished_episode_is_not_linked_through_episodes_either(timeline_root):
-    html = render(timeline_root, EVENT.replace('era = "aether"', 'era = "aether"\nepisodes = [1]'))
+    html = render(timeline_root, EVENT.replace('era = "ether"', 'era = "ether"\nepisodes = [1]'))
     assert "tl__episodes" not in html and "episodes/001" not in html
 
 
 def test_chips_are_all_plus_the_values_in_use(timeline_root):
     p = parse(render(timeline_root, SEED))
-    assert p.chips["era"] == ["all", "aether", "relativity", "quantum-electron", "precision"]
+    assert p.chips["era"] == ["all", "ether", "relativity", "quantum-electron", "precision"]
     assert p.chips["class"] == ["all", "experiment", "measurement", "theory"]
     assert p.chips["thread"] == ["all", "ether", "electromagnetism", "vectors-quaternions", "relativity", "quantum",
                                  "spin-and-moment", "g-factor"]
     p = parse(render(timeline_root, EVENT))
-    assert p.chips == {"era": ["all", "aether"], "thread": ["all", "vectors-quaternions"], "class": ["all", "theory"]}
+    assert p.chips == {"era": ["all", "ether"], "thread": ["all", "vectors-quaternions"], "class": ["all", "theory"]}
+
+
+def test_the_meta_line_shows_the_era_label_with_its_years_and_the_chip_shows_the_label(timeline_root):
+    html = render(timeline_root, SEED)
+    for meta in ("Fields and ether, 1840\u20131904", "Relativity, 1905\u20131924", "Quantum electron, 1925\u20131949",
+                 "Precision, 1950\u2013present"):
+        assert f"{meta} &middot; " in html
+    for label in ("Fields and ether", "Relativity", "Quantum electron", "Precision"):
+        assert f'aria-pressed="false">{label}</button>' in html
 
 
 def test_timeline_text_is_escaped(timeline_root):
@@ -384,8 +393,8 @@ def test_timeline_text_is_escaped(timeline_root):
 
 
 def test_related_links_point_at_the_other_entry(timeline_root):
-    other = event("1887-michelson-morley", "1887-11", "aether", "experiment", ["ether"], "michelson1887ether")
-    html = render(timeline_root, EVENT.replace('era = "aether"', 'era = "aether"\nrelated = ["1887-michelson-morley"]') + "\n" + other)
+    other = event("1887-michelson-morley", "1887-11", "ether", "experiment", ["ether"], "michelson1887ether")
+    html = render(timeline_root, EVENT.replace('era = "ether"', 'era = "ether"\nrelated = ["1887-michelson-morley"]') + "\n" + other)
     assert 'See also <a href="#1887-michelson-morley">Title 1887-michelson-morley</a>' in html
 
 

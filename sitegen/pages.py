@@ -302,7 +302,8 @@ def history(ctx: Ctx):
     titles = {e.id: e.title for e in events}
     items = ""
     for ev in events:
-        meta = " &middot; ".join([esc(content.ERAS[ev.era][0]), esc(content.CLASSES[ev.cls]),
+        era_label, era_first, era_last = content.ERAS[ev.era]
+        meta = " &middot; ".join([esc(f"{era_label}, {era_first}\u2013{era_last or 'present'}"), esc(content.CLASSES[ev.cls]),
                                   esc(", ".join(content.THREADS[t] for t in ev.thread)), content.VERIFIED[ev.verified]])
         people = f'<p class="mono tl__people">{esc(", ".join(ev.people))}</p>' if ev.people else ""
         sources = "".join(_citation(s.entry, s) for s in ev.sources)

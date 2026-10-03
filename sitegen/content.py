@@ -14,10 +14,10 @@ STATUSES = {"in-production", "published"}
 # The History filters. Each changes only by a spec change; the order is the chip order.
 # An era's bounds are inclusive years of an event's sort key; None is an open end.
 ERAS = {
-    "aether": ("Fields and the aether, 1840\u20131904", 1840, 1904),
-    "relativity": ("Relativity and the classical electron, 1905\u20131924", 1905, 1924),
-    "quantum-electron": ("The quantum electron, 1925\u20131949", 1925, 1949),
-    "precision": ("Precision measurement, 1950\u2013present", 1950, None),
+    "ether": ("Fields and ether", 1840, 1904),
+    "relativity": ("Relativity", 1905, 1924),
+    "quantum-electron": ("Quantum electron", 1925, 1949),
+    "precision": ("Precision", 1950, None),
 }
 CLASSES = {"experiment": "Experiment", "measurement": "Measurement", "theory": "Theory", "instrument": "Instrument"}
 THREADS = {
