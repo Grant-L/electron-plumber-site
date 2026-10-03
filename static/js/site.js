@@ -159,7 +159,7 @@
   const current = (li, focus) => {
     marks.forEach((m) => {
       m.li.classList.toggle("tl--current", m.li === li);
-      m.a.toggleAttribute("aria-current", m.li === li);
+      if (m.li === li) { m.a.setAttribute("aria-current", "true"); } else { m.a.removeAttribute("aria-current"); }
     });
     // After the link's own fragment navigation, which would otherwise reset focus.
     if (focus) { setTimeout(() => li.querySelector(".tl__title a").focus({ preventScroll: true })); }
@@ -200,7 +200,7 @@
       });
       if (crowded) {
         const more = make("button", "__dot tl-axis__more", track, "+" + ms.length);
-        more.setAttribute("aria-label", e.band.getAttribute("aria-label"));
+        more.setAttribute("aria-label", "Zoom to " + e.band.getAttribute("aria-label"));
         on(more, "click", () => e.chip.click());
         place(more, k * bw + bw / 2, 1, e);
       } else {
@@ -211,7 +211,7 @@
     stops.sort((a, b) => a.x - b.x);
     const near = (s) => Math.abs(s.x - (was.x || 0));
     const keep = stops.includes(was) ? was : stops.reduce((best, s) => (best && near(best) <= near(s) ? best : s), null);
-    rove(keep, focused && keep !== was);
+    rove(keep, focused);
     showTip(focused ? keep : null);
   };
 
@@ -234,14 +234,16 @@
   };
 
   const fromHash = () => {
-    const li = d.getElementById(decodeURIComponent(location.hash.slice(1))), i = items.indexOf(li);
-    if (i < 0) { return; }
-    if (li.hidden) {
+    const li = d.getElementById(location.hash.slice(1)), i = items.indexOf(li), a = i < 0 ? null : marks[i].a;
+    if (li && li.hidden && a) {
       groups.forEach((f) => pick(f).click());
       li.scrollIntoView();
     }
-    current(li);
-    if (!marks[i].a.hidden) { scroll.scrollLeft = marks[i].a.x - scroll.clientWidth / 2; }
+    current(a && li);
+    if (a && !a.hidden) {
+      rove(a);
+      scroll.scrollLeft = a.x - scroll.clientWidth / 2;
+    }
   };
 
   on(track, "pointerdown", (ev) => {
@@ -252,8 +254,8 @@
     const a = ev.target.closest("a.tl-axis__dot");
     if (!a) { return; }
     rove(a);
-    // Touch has no hover: the first tap shows the tip, the second follows the link.
-    if (touch && !armed) { ev.preventDefault(); showTip(a); return; }
+    // Touch has no hover: the first tap shows the tip, the second follows the link. Enter's click has detail 0.
+    if (touch && ev.detail && !armed) { ev.preventDefault(); showTip(a); return; }
     current(a.mark.li, true);
   });
   on(track, "focusin", (ev) => showTip(ev.target));

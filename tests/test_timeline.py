@@ -571,5 +571,5 @@ def test_site_js_and_css_stay_within_the_axis_budget():
     js = (ROOT / "static" / "js" / "site.js").read_bytes()
     css = (ROOT / "static" / "css" / "site.css").read_bytes()
     assert len(css) - CSS_BASELINE <= 4 * 1024
-    assert len(js) - JS_BASELINE <= 10 * 1024
+    assert len(js) - JS_BASELINE <= 10_000
     assert len(gzip.compress(js, 9)) - JS_GZIP_BASELINE <= 3.5 * 1024
