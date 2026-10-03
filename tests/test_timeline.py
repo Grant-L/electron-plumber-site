@@ -337,6 +337,11 @@ def test_citation_text_comes_from_the_bib(timeline_root):
     assert 'href="https://doi.org/10.0000/fixture.hamilton1865letter"' in html
 
 
+def test_et_al_does_not_double_its_full_stop():
+    entry = bib.Entry("article", "k", {"title": "T", "journal": "J", "year": "2023"}, ("A", "B", "C", "D"))
+    assert "A et al. J (2023)." in pages._citation(entry, content.Source(key="k", kind="primary"))
+
+
 def test_claims_render_only_for_published_episodes(timeline_root):
     text = EVENT.replace('era = "aether"', 'era = "aether"\nclaims = ["ep001-c03"]')
     html = render(timeline_root, text)  # Episode 001 is in production

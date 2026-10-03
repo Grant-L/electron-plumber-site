@@ -241,7 +241,7 @@ def _citation(entry, src):
     where += (f", {f['pages']}" if f.get("pages") else "")
     where = (f"{where} ({f['year']})" if where else f["year"]) + (f", {src.locator}" if src.locator else "")
     parts = [f"<cite>{esc(f['title'])}</cite>"] + ([esc(_authors(entry.authors))] if entry.authors else []) + [esc(where)]
-    text = ". ".join(parts) + "."
+    text = " ".join(p if p.endswith((".", "?", "!")) else p + "." for p in parts)
     doi, url = src.doi or f.get("doi", ""), src.url or f.get("url", "")
     if doi:
         text += f' <a href="https://doi.org/{esc(doi)}" rel="noopener">doi:{esc(doi)}</a>'
