@@ -1,3 +1,4 @@
+import gzip
 import re
 from html.parser import HTMLParser
 
@@ -521,6 +522,7 @@ GOLDEN_ERA_CHIPS = ('<div class="filter__chips" role="group" aria-label="Filter 
                     'data-value="all" aria-pressed="true">All eras</button><button class="chip" type="button" data-value="ether" '
                     'aria-pressed="false">Fields and ether</button></div>')
 AXIS_ATTRS = re.compile(r' data-(?:year|from|to)="[^"]*"')
+JS_BASELINE, JS_GZIP_BASELINE, CSS_BASELINE = 3697, 1441, 24194  # bytes on main before the axis
 
 
 def test_each_entry_carries_its_sort_key_year(timeline_root):
@@ -545,4 +547,29 @@ def test_without_javascript_the_markup_is_otherwise_unchanged(timeline_root):
     assert 'data-verified="primary" data-year="1843"><article>' in html
     stripped = AXIS_ATTRS.sub("", html)
     assert GOLDEN_LI in stripped and GOLDEN_ERA_CHIPS in stripped
+    assert "tl-axis" not in html and "tl--current" not in html  # the axis and the highlight exist only once site.js runs
 
+
+def test_the_axis_css_only_styles_what_site_js_adds():
+    css = re.sub(r"/\*.*?\*/", "", (ROOT / "static" / "css" / "site.css").read_text(encoding="utf-8"), flags=re.S)
+    start = css.index(".tl-axis {")
+    end = css.index("@media print {\n  .tl-axis { display: none; }\n}") + len("@media print {\n  .tl-axis { display: none; }\n}")
+    for selector in re.findall(r"([^{}]+)\{", css[start:end]):
+        selector = selector.strip()
+        assert selector.startswith("@media") or all("tl-axis" in s or "tl--current" in s for s in selector.split(",")), selector
+
+
+def test_site_js_requests_nothing_but_the_video_embed():
+    js = (ROOT / "static" / "js" / "site.js").read_text(encoding="utf-8")
+    assert re.findall(r"https?://[^\"'`\s]+", js) == ["https://www.youtube-nocookie.com/embed/"]
+    assert not re.search(r"[\"'`]//", js)
+    assert not any(word in js for word in ("fetch(", "XMLHttpRequest", "import(", "sendBeacon", "WebSocket", "new Image"))
+
+
+def test_site_js_and_css_stay_within_the_axis_budget():
+    """Raw bytes as served: the site has no minify step. Gzip is what the browser transfers."""
+    js = (ROOT / "static" / "js" / "site.js").read_bytes()
+    css = (ROOT / "static" / "css" / "site.css").read_bytes()
+    assert len(css) - CSS_BASELINE <= 4 * 1024
+    assert len(js) - JS_BASELINE <= 10 * 1024
+    assert len(gzip.compress(js, 9)) - JS_GZIP_BASELINE <= 3.5 * 1024

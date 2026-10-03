@@ -210,6 +210,48 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl__sources .mono { font-size: 12px; }
 .tl__checked { font-size: 12px; }
 
+/* The era axis over the timeline. site.js builds it, so none of this applies without JavaScript. --hit is the
+ * marker's hit area; site.js reads it for lane spacing. */
+.tl-axis { --hit: 24px; border-top: 1px solid var(--line); }
+.tl-axis .inner { position: relative; padding-top: 16px; padding-bottom: 16px; }
+.tl-axis [hidden] { display: none; }
+.tl-axis__bands { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.tl-axis__band { display: block; min-height: 44px; padding: 4px 8px; background: rgba(86, 180, 233, 0.07); border: 0; border-bottom: 2px solid transparent; color: var(--body); font-family: var(--mono); font-size: 12px; line-height: 1.35; text-align: left; cursor: pointer; }
+.tl-axis__zone { position: absolute; top: 0; height: calc(3 * var(--hit)); background: rgba(86, 180, 233, 0.07); }
+.tl-axis__band:nth-child(even), .tl-axis__zone--alt { background: rgba(86, 180, 233, 0.14); }
+.tl-axis__band:hover, .tl-axis__band[aria-pressed="true"] { color: var(--fg); }
+.tl-axis__band[aria-pressed="true"] { border-bottom-color: var(--sky); }
+.tl-axis__label { display: block; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.tl-axis__years, .tl-axis__count { color: var(--muted); }
+.tl-axis__count::before { content: " \00b7\0020"; }
+.tl-axis__scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+.tl-axis__track { position: relative; min-width: 100%; height: calc(3 * var(--hit) + 26px); }
+.tl-axis__tick { position: absolute; top: calc(3 * var(--hit)); padding-top: 8px; transform: translateX(-50%); font-family: var(--mono); font-size: 11px; line-height: 1; color: var(--muted); }
+.tl-axis__tick::before { content: ""; position: absolute; left: 50%; top: 0; width: 1px; height: 5px; background: var(--field); }
+.tl-axis__dot { position: absolute; z-index: 1; display: flex; align-items: center; justify-content: center; width: var(--hit); height: var(--hit); margin-left: calc(var(--hit) / -2); padding: 0; background: none; border: 0; color: var(--sky); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tl-axis__dot::before { content: ""; width: 10px; height: 10px; border: 2px solid currentColor; border-radius: 50%; background: currentColor; }
+.tl-axis__dot:hover, .tl-axis__dot:focus-visible, .tl-axis__dot[aria-current] { color: var(--fg); }
+.tl-axis__dot[aria-current]::before { width: 14px; height: 14px; background: var(--bg); }
+.tl-axis__dot:focus-visible { outline-offset: -2px; }
+.tl-axis__more { width: auto; min-width: var(--hit); padding: 0 6px; border: 1px solid currentColor; border-radius: 12px; font-family: var(--mono); font-size: 11px; }
+.tl-axis__more::before { content: none; }
+.tl-axis__tip { position: absolute; z-index: 2; max-width: min(320px, 80%); padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-left: 2px solid var(--sky); color: var(--fg); font-size: 15px; line-height: 1.4; pointer-events: none; }
+.tl-axis__tip b { display: block; color: var(--sky); font-family: var(--mono); font-size: 12px; font-weight: 400; }
+.tl-axis__full { margin-top: 8px; }
+.tl--current > article { max-width: 778px; margin-left: -18px; padding-left: 16px; border-left: 2px solid var(--sky); }
+@media (pointer: coarse) {
+  .tl-axis { --hit: 44px; }
+}
+@media (max-width: 560px) {
+  .tl-axis .inner { padding-top: 12px; padding-bottom: 12px; }
+  .tl-axis__scroll, .tl-axis__tip, .tl-axis__full, .tl-axis__to { display: none; }
+  .tl-axis__band { padding: 6px 1px; font-size: 11px; line-height: 1.3; }
+  .tl-axis__label { letter-spacing: 0; text-transform: none; }
+}
+@media print {
+  .tl-axis { display: none; }
+}
+
 /* ------------------------------------------------------------ episode post */
 .post-head { width: min(960px, 100% - 2 * var(--pad)); margin: 0 auto; padding: 56px 0 48px; display: flex; flex-direction: column; }
 .post-video { width: min(960px, 100% - 2 * var(--pad)); margin: 0 auto 64px; }
