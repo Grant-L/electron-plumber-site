@@ -20,8 +20,8 @@ make test       # unit tests (pytest)
 | `content/timeline.toml` | The History page's events, one `[[event]]` each. **Generated** by `tools/export_timeline.py` from the Historian's confirmed, public entries; never edited by hand. A missing file means an empty timeline. |
 | `content/sources.bib` | A verbatim copy of the notes repo's `sources.bib`, with one header line naming the notes commit it was copied from. Every timeline source key must be in it. |
 | `sitegen/` | Templates (`pages.py`), shared components (`html.py`), content loading and rules (`content.py`), a small Markdown subset (`md.py`), a small BibTeX subset (`bib.py`). |
-| `tools/` | `export_timeline.py`: the public-safe export from the Historian's confirmations into `content/timeline.toml` (`--check` exits 1 if the file would change). |
-| `static/` | CSS, the one script, images, favicons. Copied to the site root as is. |
+| `tools/` | `export_timeline.py`: the public-safe export from the Historian's confirmations into `content/timeline.toml` (`--check` exits 1 if the file would change). `make_assets.py`: the subset web fonts in `static/fonts/` and the AVIF/WebP copies of the hero and the portrait (`make assets`). |
+| `static/` | CSS, the one script, fonts, images, favicons. Copied to the site root as is. The fonts and the `.avif`/`.webp` images are made by `tools/make_assets.py`; commit them with the change that needs them. |
 | `build.py`, `check.py` | Build into `_site/`; gate the result. |
 | `design/` | The mark as SVG and PNG, and the script that draws it from its geometry. |
 
@@ -39,9 +39,9 @@ The home page, the episode list and the short link (`/001`) follow from that dat
 ## Rules the build enforces
 
 - A published episode without a handout is refused. So is a handout for an episode that is not published.
-- Every page has a title, a description and exactly one `h1`. Every internal link and anchor resolves. No `[PLACEHOLDER]` text ships.
+- Every page has a title, a description and exactly one `h1`. Every internal link, `srcset` candidate and anchor resolves, and so does every `url()` in a stylesheet. No `[PLACEHOLDER]` text ships.
 - The framework's name is spelled out on the site, in page text, titles and attributes alike.
-- Images carry no embedded metadata. TOML text is escaped wherever it lands in a page.
+- Images (JPEG, PNG, WebP, AVIF) carry no embedded metadata. TOML text is escaped wherever it lands in a page.
 - The owner's private list of terms that must never ship is checked against every built file and every tracked file. The list is not in this repo: it comes from `_private/forbidden.txt` locally and from the `FORBIDDEN_TERMS` repository secret in CI. Without it (a fork, for example) that one rule is skipped with a warning.
 - Unsupported Markdown (tables, nested lists) is a build error, not a silent mis-render.
 - Every History event has a frozen, year-prefixed id, a real date that is not in the future (or open-ended bounds instead), an era whose years contain it, a class and one to three threads from fixed lists, at least one source whose key is in `content/sources.bib`, and a verification record (`verified`, `checked_by`, `checked_date`). An event marked `verified = "primary"` cites at least one primary source. Events are in date order. Claims and episode links appear only once the episode is published.
@@ -53,6 +53,8 @@ The home page, the episode list and the short link (`/001`) follow from that dat
 Branch, change, `make check`, pull request. `main` is what is live. To preview an unpublished handout locally, put it in `_private/drafts/<slug>.md` and run `make serve-drafts`; that build is never deployed.
 
 Colors follow the channel's animation theme (Okabe-Ito accents on a dark ground). The mark is a Smith chart holding the flat (2,3) trefoil; `make mark` redraws every cut.
+
+The type is self-hosted from `/fonts/`: EP Serif and EP Mono, subsets of Source Serif 4 and IBM Plex Mono renamed as their SIL Open Font License requires (their Reserved Font Names). There is no third-party request on page load. `make assets` remakes the fonts (it downloads the pinned upstream files) and the AVIF/WebP images from the masters in `static/img/`; it needs Pillow 11.3 or later, fontTools and brotli. Review the diff before committing.
 
 ## Hosting
 
