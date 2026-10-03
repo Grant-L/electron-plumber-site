@@ -41,22 +41,44 @@
     });
   });
 
-  // 3. Filter the episode list by arc.
-  var chips = document.querySelectorAll(".chip[data-arc]");
-  chips.forEach(function (chip) {
-    chip.addEventListener("click", function () {
-      var arc = chip.dataset.arc;
-      chips.forEach(function (c) { c.setAttribute("aria-pressed", c === chip ? "true" : "false"); });
+  // 3. Filters: the episode list by arc, the History timeline by era, subject and kind of event.
+  //    The filter block ships hidden, so without JavaScript there are no dead buttons and every item shows.
+  //    Each [data-filter="field"] group narrows on the items' data-field values (space-separated lists match
+  //    any one value); the groups combine with AND.
+  document.querySelectorAll("[data-filters]").forEach(function (box) {
+    if (!box.dataset.items) { return; }
+    var items = document.querySelectorAll(box.dataset.items);
+    var status = box.querySelector("[role=status]");
+    var groups = box.querySelectorAll("[data-filter]");
+    var state = {};
+    groups.forEach(function (group) { state[group.dataset.filter] = "all"; });
+    var fields = Object.keys(state);
+
+    var update = function () {
       var shown = 0;
-      document.querySelectorAll(".ep-row[data-arc]").forEach(function (row) {
-        row.hidden = arc !== "all" && row.dataset.arc !== arc;
-        if (!row.hidden) { shown += 1; }
+      var filtered = fields.some(function (f) { return state[f] !== "all"; });
+      items.forEach(function (item) {
+        item.hidden = !fields.every(function (f) {
+          return state[f] === "all" || (" " + item.dataset[f] + " ").indexOf(" " + state[f] + " ") >= 0;
+        });
+        if (!item.hidden) { shown += 1; }
       });
-      var status = document.querySelector(".filter [role=status]");
       if (status) {
-        status.textContent = arc === "all" ? status.dataset.total + " published"
-          : shown ? shown + " shown" : "Nothing in this arc yet.";
+        status.textContent = !filtered ? status.dataset.total + " " + status.dataset.noun
+          : shown ? shown + " shown" : (box.dataset.empty || "Nothing matches.");
       }
+    };
+
+    groups.forEach(function (group) {
+      var chips = group.querySelectorAll(".chip[data-value]");
+      chips.forEach(function (chip) {
+        chip.addEventListener("click", function () {
+          state[group.dataset.filter] = chip.dataset.value;
+          chips.forEach(function (c) { c.setAttribute("aria-pressed", c === chip ? "true" : "false"); });
+          update();
+        });
+      });
     });
+    box.hidden = false;
   });
 })();

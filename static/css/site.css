@@ -132,14 +132,14 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 /* ------------------------------------------------------------ header */
 .site-header { border-bottom: 1px solid var(--line); background: var(--bg); }
 .site-header .inner { height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.brand { display: flex; align-items: center; gap: 14px; text-decoration: none; min-height: 44px; }
+.brand { display: flex; align-items: center; gap: 14px; text-decoration: none; min-height: 44px; flex-shrink: 0; }
 .brand img { width: 40px; height: 40px; }
 .brand span { font-family: var(--serif); font-size: 15px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg); white-space: nowrap; }
 .nav { display: flex; align-items: center; gap: 36px; }
 .nav a:not(.btn) { display: flex; align-items: center; height: 44px; border-top: 2px solid transparent; border-bottom: 2px solid transparent; font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; color: var(--body); }
 .nav a:not(.btn):hover { color: var(--fg); }
 .nav a[aria-current="page"] { color: var(--fg); border-bottom-color: var(--sky); }
-.nav-toggle { display: none; width: 44px; height: 44px; padding: 0; background: transparent; border: 0; color: var(--fg); align-items: center; justify-content: center; cursor: pointer; }
+.nav-toggle { display: none; flex-shrink: 0; width: 44px; height: 44px; padding: 0; background: transparent; border: 0; color: var(--fg); align-items: center; justify-content: center; cursor: pointer; }
 
 /* ------------------------------------------------------------ hero: the channel banner, then the title plate */
 .band { position: relative; height: clamp(160px, 20.84vw, 300px); display: flex; align-items: center; justify-content: center; overflow: hidden; background: #050508 center / cover no-repeat; }
@@ -188,6 +188,27 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .ep-row__card { width: min(400px, 42%); flex-shrink: 0; }
 .ep-row[hidden] { display: none; }
 .empty { padding: 56px var(--pad); max-width: 1440px; margin: 0 auto; }
+/* The filter block ships with the hidden attribute; site.js reveals it. */
+.filter[hidden] { display: none; }
+.filter--multi .inner { padding-top: 12px; padding-bottom: 12px; gap: 4px 48px; justify-content: flex-start; }
+.filter--multi [role=status] { margin-left: auto; }
+
+/* ------------------------------------------------------------ history */
+.timeline { list-style: none; padding: 0; }
+.tl { display: block; padding: 40px 0; border-top: 1px solid var(--line); scroll-margin-top: 24px; }
+.tl:first-child { padding-top: 0; border-top: 0; }
+.tl[hidden] { display: none; }
+.tl article { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
+.tl__date { color: var(--sky); }
+.tl__date abbr { text-decoration: none; }
+.tl__title a { color: inherit; text-decoration: none; }
+.tl__title a:hover { color: var(--sky); }
+.tl__summary { color: var(--body); }
+.tl__people { color: var(--body); }
+.tl__sources { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 1.55; overflow-wrap: anywhere; }
+.tl__sources cite { color: var(--fg); }
+.tl__sources .mono { font-size: 12px; }
+.tl__checked { font-size: 12px; }
 
 /* ------------------------------------------------------------ episode post */
 .post-head { width: min(960px, 100% - 2 * var(--pad)); margin: 0 auto; padding: 56px 0 48px; display: flex; flex-direction: column; }
@@ -269,7 +290,7 @@ a.trow:hover .trow__name { color: var(--sky); }
   .contact { flex-direction: column; }
   .contact__lead { width: auto; }
 }
-@media (max-width: 1000px) {
+@media (max-width: 1180px) {
   .nav-toggle { display: flex; }
   .nav { display: none; position: absolute; left: 0; right: 0; top: 64px; z-index: 40; flex-direction: column; align-items: stretch; gap: 0; padding: 8px var(--pad) 24px; background: var(--bg); border-bottom: 1px solid var(--line); }
   .nav.is-open { display: flex; }
@@ -309,6 +330,11 @@ a.trow:hover .trow__name { color: var(--sky); }
   .subscribe-form, .subscribe-form .field, .subscribe-form .field input, .subscribe-form .btn { width: 100%; }
   .fcard__body { padding: 28px 24px; }
   .block { padding: 40px 0; }
+}
+@media (max-width: 360px) {
+  .site-header .inner { gap: 12px; }
+  .brand { gap: 10px; }
+  .brand span { letter-spacing: 0.08em; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

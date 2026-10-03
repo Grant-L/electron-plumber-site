@@ -17,7 +17,10 @@ make test       # unit tests (pytest)
 | `content/site.toml` | Site-wide settings: links, tagline, contact address, newsletter endpoint. |
 | `content/episodes.toml` | One entry per announced episode. Status drives everything the site says about it. |
 | `content/episodes/*.md` | Episode notes for **published** episodes: the same file that is published in the [notes repo](https://github.com/Grant-L/electron-plumber-notes). |
-| `sitegen/` | Templates (`pages.py`), shared components (`html.py`), content loading and rules (`content.py`), a small Markdown subset (`md.py`). |
+| `content/timeline.toml` | The History page's events, one `[[event]]` each. **Generated** by `tools/export_timeline.py` from the Historian's confirmed, public entries; never edited by hand. A missing file means an empty timeline. |
+| `content/sources.bib` | A verbatim copy of the notes repo's `sources.bib`, with one header line naming the notes commit it was copied from. Every timeline source key must be in it. |
+| `sitegen/` | Templates (`pages.py`), shared components (`html.py`), content loading and rules (`content.py`), a small Markdown subset (`md.py`), a small BibTeX subset (`bib.py`). |
+| `tools/` | `export_timeline.py`: the public-safe export from the Historian's confirmations into `content/timeline.toml` (`--check` exits 1 if the file would change). |
 | `static/` | CSS, the one script, images, favicons. Copied to the site root as is. |
 | `build.py`, `check.py` | Build into `_site/`; gate the result. |
 | `design/` | The mark as SVG and PNG, and the script that draws it from its geometry. |
@@ -41,6 +44,9 @@ The home page, the episode list and the short link (`/001`) follow from that dat
 - Images carry no embedded metadata. TOML text is escaped wherever it lands in a page.
 - The owner's private list of terms that must never ship is checked against every built file and every tracked file. The list is not in this repo: it comes from `_private/forbidden.txt` locally and from the `FORBIDDEN_TERMS` repository secret in CI. Without it (a fork, for example) that one rule is skipped with a warning.
 - Unsupported Markdown (tables, nested lists) is a build error, not a silent mis-render.
+- Every History event has a frozen, year-prefixed id, a real date that is not in the future (or open-ended bounds instead), an era whose years contain it, a class and one to three threads from fixed lists, at least one source whose key is in `content/sources.bib`, and a verification record (`verified`, `checked_by`, `checked_date`). An event marked `verified = "primary"` cites at least one primary source. Events are in date order. Claims and episode links appear only once the episode is published.
+- `content/sources.bib` must start with `% Copied from Grant-L/electron-plumber-notes sources.bib at commit <40-character SHA>.`, and an unknown TeX macro or a malformed entry is an error. The build reads the bib only when `content/timeline.toml` has events, and then refuses a bad one. The tests (`tests/test_bib.py`) check the committed copy on every run, events or not.
+- The timeline export copies only allowlisted fields from entries the Historian marked confirmed and public. It refuses to read any `_private` path, refuses output carrying tracker-internal ids or the framework's acronym, runs the forbidden-term check before it writes, and gives byte-identical output for the same input.
 
 ## Working on the site
 

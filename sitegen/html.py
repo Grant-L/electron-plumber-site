@@ -6,7 +6,14 @@ from .content import ARCS
 FONTS = ("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600"
          "&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&amp;display=swap")
 RECORDS = ("Corrections", "corrections/")  # the page with the labels, the claim format, the ledger, sources and licenses
-NAV = [("Episodes", "episodes/"), ("Research", "research/"), RECORDS, ("About", "about/")]
+NAV = [("Episodes", "episodes/"), ("History", "history/"), ("Research", "research/"), RECORDS, ("About", "about/")]
+# Below the menu-button breakpoint in site.css (1180px) the nav opens only with JavaScript. Without it, show the
+# links as a wrapped row under the brand instead, so a phone with JS off still has the main menu.
+NOSCRIPT_NAV = ('<noscript><style>@media (max-width: 1180px) { .nav-toggle { display: none; } '
+                '.site-header .inner { height: auto; flex-wrap: wrap; row-gap: 0; padding-top: 12px; padding-bottom: 12px; padding-right: var(--pad); } '
+                '.nav { display: flex; position: static; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0 24px; '
+                'padding: 0; border: 0; } .nav a:not(.btn) { height: 44px; } .nav a:not(.btn):not([aria-current]) { border-bottom-color: transparent; } '
+                '.nav .btn { margin-top: 0; } }</style></noscript>')
 ARROW = ('<svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true">'
          '<path d="M0 6h14M9 1l5 5-5 5" stroke="currentColor" stroke-width="1.6"/></svg>')
 BACK = ('<svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true">'
@@ -20,8 +27,9 @@ def esc(text):
 class Ctx:
     """Everything a template needs, plus link helpers that stay relative so the site works from any base path."""
 
-    def __init__(self, site, episodes, path, version, absolute=False):
+    def __init__(self, site, episodes, path, version, absolute=False, timeline=()):
         self.site, self.episodes, self.path, self.version = site, episodes, path, version
+        self.timeline = timeline
         depth = path.count("/")
         self.root = "/" if absolute else ("../" * depth if depth else "./")
 
@@ -173,6 +181,7 @@ def page(ctx, *, title, description, body, active=None, arc=None, noindex=False)
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{FONTS}">
 <link rel="stylesheet" href="{ctx.asset('css/site.css')}">
+{NOSCRIPT_NAV}
 </head>
 <body{arc_attr}>
 <a class="skip" href="#main">Skip to content</a>
