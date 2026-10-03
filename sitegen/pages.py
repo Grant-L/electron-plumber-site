@@ -17,11 +17,28 @@ ABOUT = ("I&rsquo;m a staff electrical engineer in grid-scale energy storage. My
          "you&rsquo;re watching. And when I get something wrong, it goes on a public corrections ledger.")
 
 
-def _portrait(ctx, mod=""):
-    """The portrait is optional: drop static/img/portrait.jpg in and it appears."""
-    if not (Path(ctx.site["_root"]) / "static" / "img" / "portrait.jpg").is_file():
+# Raster masters in static/img/ and the copies tools/make_assets.py makes of them.
+HERO = "img/field-bed"
+PORTRAIT = "img/portrait"
+PORTRAIT_WIDTHS = (200, 400, 640, 768)
+
+
+def hero_preload(ctx):
+    return f'<link rel="preload" as="image" href="{ctx.to(HERO + ".avif")}" type="image/avif" fetchpriority="high">\n'
+
+
+def _portrait(ctx, mod="", sizes="200px", lazy=True):
+    """The portrait is optional: drop static/img/portrait.jpg in, run tools/make_assets.py, and it appears.
+    Lazy only where it starts below the fold; above it, it is the page's largest paint."""
+    if not (Path(ctx.site["_root"]) / "static" / f"{PORTRAIT}.jpg").is_file():
         return ""
-    return f'<img class="portrait {mod}" src="{ctx.to("img/portrait.jpg")}" alt="{esc(ctx.site["author"])}" width="400" height="500">'
+    sources = "".join(
+        f'<source type="image/{ext}" sizes="{sizes}" srcset="'
+        + ", ".join(f'{ctx.to(f"{PORTRAIT}-{w}.{ext}")} {w}w' for w in PORTRAIT_WIDTHS) + '">'
+        for ext in ("avif", "webp"))
+    loading = ' loading="lazy"' if lazy else ' fetchpriority="high"'
+    return (f'<picture>{sources}<img class="portrait {mod}" src="{ctx.to(PORTRAIT + ".jpg")}" alt="{esc(ctx.site["author"])}" '
+            f'width="400" height="500"{loading} decoding="async"></picture>')
 
 
 def _badge(ep):
@@ -46,7 +63,9 @@ def home(ctx: Ctx):
         actions = btn("Subscribe on YouTube", ctx.sub_url, external=True) + arrow("The notes repo", s["notes_repo"], external=True)
         status = f'<div class="g28">{kicker(upcoming.serial + " is in production", "kicker--orange")}</div>' if upcoming else ""
 
-    hero = (f'<div class="band" style="background-image: url({ctx.to("img/field-bed.png")});">'
+    banner = (f"background-image: url({ctx.to(HERO + '.png')}); background-image: image-set(url({ctx.to(HERO + '.avif')}) "
+              f"type('image/avif'), url({ctx.to(HERO + '.webp')}) type('image/webp'), url({ctx.to(HERO + '.png')}) type('image/png'));")
+    hero = (f'<div class="band" style="{banner}">'
             f'<img src="{ctx.to("img/mark-banner-halo.svg")}" width="236" height="236" '
             f'alt="Channel logo: a Smith chart with a three-lobed closed curve inside it"></div>'
             f'<div class="plate-block">{kicker("The Electron Plumber")}<hr class="rule rule--plate g20">'
@@ -109,7 +128,7 @@ def home(ctx: Ctx):
                           f'<div class="g28">{arrow("The speculative program", ctx.to("research/"), "arrow--orange")}</div>'),
                      "row--tighter", rail=badge("speculative"))
 
-    return page(ctx, title=s["title"], active=None,
+    return page(ctx, title=s["title"], active=None, preload=hero_preload(ctx),
                 description="One question, pursued honestly: what is an electron? History told from the original papers, "
                             "speculation labeled as speculation, and shop practice.",
                 body=hero + orient + episode_row + author_row + records_row + disclosure + subscribe(ctx))
@@ -462,7 +481,8 @@ def records(ctx: Ctx):
 # ------------------------------------------------------------------ ABOUT
 def about(ctx: Ctx):
     s = ctx.site
-    head = (f'<div class="about-head">{_portrait(ctx, "portrait--lg")}<div class="stack">{kicker("About")}'
+    portrait = _portrait(ctx, "portrait--lg", sizes="(max-width: 860px) min(400px, 88vw), min(400px, 32vw)", lazy=False)
+    head = (f'<div class="about-head">{portrait}<div class="stack">{kicker("About")}'
             f'<h1 class="h1 h1--page g16">{esc(s["author"])}</h1><div class="tagline g20">{esc(s["tagline"])}</div>'
             f'<p class="prose g32">{ABOUT}</p><div class="mono g24">Views my own.</div></div></div>')
 

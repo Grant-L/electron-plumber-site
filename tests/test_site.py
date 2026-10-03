@@ -113,3 +113,37 @@ def test_images_with_metadata_are_refused(tmp_path):
     build.build(tmp_path / "site")
     (tmp_path / "site" / "img" / "leak.jpg").write_bytes(b"\xff\xd8\xff\xe1\x00\x10Exif\x00\x00rest")
     assert any("metadata" in p for p in check.check(tmp_path / "site"))
+
+
+def test_fonts_are_self_hosted_and_the_preload_matches_the_stylesheet(tmp_path):
+    from sitegen.html import FONT_PRELOAD
+    build.build(tmp_path / "site")
+    css = (tmp_path / "site" / "css" / "site.css").read_text(encoding="utf-8")
+    assert f'url("../{FONT_PRELOAD}")' in css
+    for path in (tmp_path / "site").rglob("*.html"):
+        html = path.read_text(encoding="utf-8")
+        assert "fonts.googleapis.com" not in html and "fonts.gstatic.com" not in html, path
+    for name in ("index.html", "about/index.html", "404.html"):
+        html = (tmp_path / "site" / name).read_text(encoding="utf-8")
+        href = html.split('as="font" href="', 1)[1].split('"', 1)[0]
+        base = (tmp_path / "site") if href.startswith("/") else (tmp_path / "site" / name).parent
+        assert (base / href.lstrip("/")).resolve() == (tmp_path / "site" / FONT_PRELOAD).resolve(), name
+    for family in ("EP Serif", "EP Mono"):
+        assert f'font-family: "{family}"' in css
+    assert css.count("font-display: swap") == css.count("@font-face")
+
+
+def test_home_preloads_the_hero_it_paints(tmp_path):
+    build.build(tmp_path / "site")
+    home = (tmp_path / "site" / "index.html").read_text(encoding="utf-8")
+    preload = home.split('<link rel="preload" as="image" href="', 1)[1].split('"', 1)[0]
+    assert preload.endswith(".avif") and f"url({preload}) type('image/avif')" in home
+
+
+def test_portrait_is_lazy_below_the_fold_and_eager_above_it(tmp_path):
+    build.build(tmp_path / "site")
+    home = (tmp_path / "site" / "index.html").read_text(encoding="utf-8")
+    about = (tmp_path / "site" / "about" / "index.html").read_text(encoding="utf-8")
+    assert 'class="portrait "' in home and 'loading="lazy"' in home.split('class="portrait "', 1)[1].split(">", 1)[0]
+    head = about.split('class="portrait portrait--lg"', 1)[1].split(">", 1)[0]
+    assert 'loading="lazy"' not in head and 'fetchpriority="high"' in head

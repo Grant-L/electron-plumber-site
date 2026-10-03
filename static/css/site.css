@@ -4,6 +4,13 @@
  * Speculative label; sky = links, rules, kickers and the Historical label; green = the Practical label;
  * vermillion = excluded results; yellow = defined, not used. The neutrals marked "web" exist only here.
  */
+/* Subsets of Source Serif 4 and IBM Plex Mono, renamed as their OFL requires (tools/make_assets.py, fonts/OFL.txt).
+ * The preload in the page head names ../fonts/ep-serif.woff2 too: keep the two URLs identical. */
+@font-face { font-family: "EP Serif"; src: url("../fonts/ep-serif.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "EP Serif"; src: url("../fonts/ep-serif-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "EP Mono"; src: url("../fonts/ep-mono-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "EP Mono"; src: url("../fonts/ep-mono-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "EP Mono"; src: url("../fonts/ep-mono-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
 :root {
   --bg: #0e1116;
   --fg: #ffffff;
@@ -18,8 +25,8 @@
   --field: #3d4a5c;      /* web: input borders */
   --body: #c9d1db;       /* web */
   --muted: #8b97a6;      /* web */
-  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
-  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --serif: "EP Serif", Georgia, "Times New Roman", serif;
+  --mono: "EP Mono", ui-monospace, Menlo, monospace;
   --pad: clamp(24px, 6.667vw, 96px);
   --rail: 264px;
   --arc: transparent;
@@ -38,6 +45,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 img, svg { display: block; max-width: 100%; }
+/* Only a wrapper for its sources: the img inside is what the layout sizes. A source still makes an (empty) box,
+ * which a flex parent would space out like an item, so it is taken out of the layout too. */
+picture { display: contents; }
+picture > source { display: none; }
 a { color: var(--sky); }
 a:hover { color: #9bd3f3; }
 h1, h2, h3, p, ul, ol, figure, blockquote { margin: 0; }

@@ -3,8 +3,9 @@ import html as _html
 
 from .content import ARCS
 
-FONTS = ("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600"
-         "&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&amp;display=swap")
+# Self-hosted from /fonts/ (made by tools/make_assets.py). This one sets the body text and the h1, so it is preloaded;
+# its URL must match the @font-face src in site.css exactly, with no ?v=, or the browser fetches it twice.
+FONT_PRELOAD = "fonts/ep-serif.woff2"
 RECORDS = ("Corrections", "corrections/")  # the page with the labels, the claim format, the ledger, sources and licenses
 NAV = [("Episodes", "episodes/"), ("History", "history/"), ("Research", "research/"), RECORDS, ("About", "about/")]
 # Below the menu-button breakpoint in site.css (1180px) the nav opens only with JavaScript. Without it, show the
@@ -151,7 +152,7 @@ def subscribe(ctx):
     return row("Subscribe", body, "row--panel row--tight")
 
 
-def page(ctx, *, title, description, body, active=None, arc=None, noindex=False):
+def page(ctx, *, title, description, body, active=None, arc=None, noindex=False, preload=""):
     s = ctx.site
     url = s["url"].rstrip("/") + "/" + ctx.path
     full_title = title if title == s["title"] else f"{title} | {s['title']}"
@@ -177,10 +178,8 @@ def page(ctx, *, title, description, body, active=None, arc=None, noindex=False)
 <link rel="icon" href="{ctx.to('favicon.svg')}" type="image/svg+xml">
 <link rel="icon" href="{ctx.to('favicon.png')}" sizes="144x144" type="image/png">
 <link rel="apple-touch-icon" href="{ctx.to('apple-touch-icon.png')}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="{FONTS}">
-<link rel="stylesheet" href="{ctx.asset('css/site.css')}">
+<link rel="preload" as="font" href="{ctx.to(FONT_PRELOAD)}" type="font/woff2" crossorigin>
+{preload}<link rel="stylesheet" href="{ctx.asset('css/site.css')}">
 {NOSCRIPT_NAV}
 </head>
 <body{arc_attr}>
