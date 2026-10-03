@@ -16,21 +16,25 @@ from sitegen.html import RECORDS, Ctx
 ROOT = Path(__file__).resolve().parent
 
 
-def build(out: Path, drafts: bool = False):
-    out = out.resolve()
-    if out == ROOT or out in ROOT.parents:
+def build(out: Path, drafts: bool = False, root: Path = ROOT):
+    """Build from root (content/ and static/), which is this repo unless a test or a local preview passes another."""
+    out, root = out.resolve(), Path(root).resolve()
+    if any(out == r or out in r.parents for r in (ROOT, root)):
         raise SystemExit(f"refusing to build into {out}: it contains the source tree")
     if out.exists() and any(out.iterdir()) and not (out / ".nojekyll").is_file():
         raise SystemExit(f"refusing to delete {out}: it is not a previous build (no .nojekyll marker)")
 
-    site, episodes = content.load(ROOT, drafts=drafts)
-    timeline = content.load_timeline(ROOT, episodes)
-    site["_root"] = str(ROOT)
+    site, episodes = content.load(root, drafts=drafts)
+    timeline = content.load_timeline(root, episodes)
+    content.validate_episode_sources(root, episodes)
+    errata = content.load_errata(root, episodes)
+    content.link_episodes(episodes, timeline, errata)
+    site["_root"] = str(root)
 
     if out.exists():
         shutil.rmtree(out)
-    shutil.copytree(ROOT / "static", out)
-    version = hashlib.sha256(b"".join((ROOT / "static" / p).read_bytes() for p in ("css/site.css", "js/site.js"))).hexdigest()[:10]
+    shutil.copytree(root / "static", out)
+    version = hashlib.sha256(b"".join((root / "static" / p).read_bytes() for p in ("css/site.css", "js/site.js"))).hexdigest()[:10]
 
     written = []
 
@@ -42,7 +46,7 @@ def build(out: Path, drafts: bool = False):
             written.append(path)
 
     def ctx(path, **kw):
-        return Ctx(site, episodes, path, version, timeline=timeline, **kw)
+        return Ctx(site, episodes, path, version, timeline=timeline, errata=errata, **kw)
 
     write("index.html", pages.home(ctx("")))
     write("episodes/index.html", pages.episodes(ctx("episodes/")))

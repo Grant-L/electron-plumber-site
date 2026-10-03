@@ -27,9 +27,9 @@ def esc(text):
 class Ctx:
     """Everything a template needs, plus link helpers that stay relative so the site works from any base path."""
 
-    def __init__(self, site, episodes, path, version, absolute=False, timeline=()):
+    def __init__(self, site, episodes, path, version, absolute=False, timeline=(), errata=()):
         self.site, self.episodes, self.path, self.version = site, episodes, path, version
-        self.timeline = timeline
+        self.timeline, self.errata = timeline, errata
         depth = path.count("/")
         self.root = "/" if absolute else ("../" * depth if depth else "./")
 
