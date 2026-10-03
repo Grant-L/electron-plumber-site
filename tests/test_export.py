@@ -1,4 +1,5 @@
 """tools/export_timeline.py on temporary fixtures. CI has no tracker access, and no tracker text is used here."""
+import re
 import subprocess
 import sys
 import tomllib
@@ -124,6 +125,24 @@ def test_check_fails_after_a_manual_edit(files):
     files(entry())
     files.out.write_text(files.out.read_text(encoding="utf-8").replace("Summary", "Edited"), encoding="utf-8")
     assert files(entry(), check_only=True) == 1
+
+
+def test_the_header_carries_no_input_hash(files):
+    files(entry())
+    text = files.out.read_text(encoding="utf-8")
+    assert "sha256" not in text.lower() and not re.search(r"[0-9a-f]{64}", text, re.I)
+    assert "".join(text.splitlines(keepends=True)[:2]) == ex.HEADER
+
+
+def test_check_ignores_changes_to_non_public_rows(files):
+    files(entry())
+    hidden = entry(link="HL-002", id="1867-kelvin-vortex-atoms", date="1867-02-18", key="kelvin1867vortex", public="false")
+    assert files("# a comment\n" + entry() + hidden, check_only=True) == 0
+
+
+def test_check_still_fails_when_a_public_field_changes(files):
+    files(entry())
+    assert files(entry().replace('"Summary 1843-hamilton-quaternions."', '"A changed summary."'), check_only=True) == 1
 
 
 def test_check_writes_nothing(files):
