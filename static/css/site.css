@@ -229,6 +229,7 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .ep-claims li, .ledger__row[id] { scroll-margin-top: 24px; }
 .block .ledger__head, .block .ledger__row { grid-template-columns: minmax(0, 16fr) minmax(0, 32fr) minmax(0, 32fr) minmax(0, 20fr); column-gap: 16px; }
 .block .ledger__row { font-size: 16px; }
+.ledger__row div:first-child a { color: inherit; }
 .vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .next-band { border-top: 1px solid var(--line); }
 .next-band a { width: min(960px, 100% - 2 * var(--pad)); margin: 0 auto; padding: 64px 0; display: flex; align-items: center; justify-content: space-between; gap: 24px; text-decoration: none; }
