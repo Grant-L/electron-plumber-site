@@ -45,6 +45,7 @@ def build(out: Path, drafts: bool = False):
         return Ctx(site, episodes, path, version, timeline=timeline, **kw)
 
     write("index.html", pages.home(ctx("")))
+    write("start/index.html", pages.start(ctx("start/")))
     write("episodes/index.html", pages.episodes(ctx("episodes/")))
     write("history/index.html", pages.history(ctx("history/")))
     write("research/index.html", pages.research(ctx("research/")))

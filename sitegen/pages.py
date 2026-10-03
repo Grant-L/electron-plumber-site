@@ -51,6 +51,7 @@ def home(ctx: Ctx):
             f'alt="Channel logo: a Smith chart with a three-lobed closed curve inside it"></div>'
             f'<div class="plate-block">{kicker("The Electron Plumber")}<hr class="rule rule--plate g20">'
             f'<h1 class="h1 h1--hero g36">What is an electron?</h1><p class="deck g24">{DECK}</p>'
+            f'<div class="g20">{arrow("Start here", ctx.to("start/"))}</div>'
             f'<div class="mono mono--sky g28">{esc(s["tagline"])}</div>{status}'
             f'<div class="cluster cluster--stack g40">{actions}</div></div>')
 
@@ -113,6 +114,28 @@ def home(ctx: Ctx):
                 description="One question, pursued honestly: what is an electron? History told from the original papers, "
                             "speculation labeled as speculation, and shop practice.",
                 body=hero + orient + episode_row + author_row + records_row + disclosure + subscribe(ctx))
+
+
+# ------------------------------------------------------------------ START HERE
+def start(ctx: Ctx):
+    head = ('<div class="page-head"><h1 class="h1 h1--page">Start here</h1>'
+            '<p class="deck deck--sm g20">Three stops for a first visit.</p></div>')
+
+    first = next((e for e in ctx.episodes if e.number == 1), None)
+    if first and first.live:
+        watch = arrow(f"Watch {first.serial}", ctx.to(first.url))
+    else:
+        watch = mono("In production")
+    question = row("The question", (f'<h2 class="h2">What is an Electron?</h2><p class="prose g20">{DECK}</p>'
+                                    f'<div class="g24">{watch}</div>'), "row--tight")
+    past = row("The history", (f'<div>{badge("historical")}</div><h2 class="h2 g20">History</h2><p class="prose g20">{HISTORY_DESCRIPTION}</p>'
+                               f'<div class="g24">{arrow("History", ctx.to("history/"))}</div>'), "row--tight")
+    shelf = row("The episodes", ('<h2 class="h2">Episodes</h2>'
+                                 '<p class="prose g20">Every episode of The Electron Plumber, with its notes, sources and corrections.</p>'
+                                 f'<div class="g24">{arrow("Episodes", ctx.to("episodes/"))}</div>'), "row--tight")
+
+    return page(ctx, title="Start here", description="Where to begin: the question, the history, then the episodes.",
+                body=head + question + past + shelf + subscribe(ctx))
 
 
 # ------------------------------------------------------------------ EPISODES
