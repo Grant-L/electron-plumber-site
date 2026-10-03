@@ -42,7 +42,7 @@ Every build follows the brief-and-receipt pattern:
   - a horizontal rule or setext underline: a line made only of three or more `-`, `*` or `_`, or only of `=`.
 
   Anything else outside the subset may render wrong without any error. Examples are indented code, reference-style links, an image mid-paragraph, and a table inside a blockquote or list item. So stick to the subset, and check the rendered page with `make serve` (or `make serve-drafts` for a draft).
-- `build.py`: routes. The pages are `/`, `/episodes/`, `/history/`, `/research/`, `/corrections/`, `/about/`, `/404.html`, and one page per published episode at `/episodes/<slug>/`. Short-link redirects are `/notes`, `/errata` (the notes repo's `ERRATA.md`), `/code`, `/letter`, `/yt`, and `/NNN` for each published episode. A drafts build adds the same page and `/NNN` link for each draft. It also writes `sitemap.xml`, `robots.txt`, `CNAME` and `.nojekyll`.
+- `build.py`: routes. The pages are `/`, `/episodes/`, `/history/`, `/research/`, `/corrections/`, `/about/`, `/404.html`, and one page per published episode at `/episodes/<slug>/`. Short-link redirects are `/notes`, `/errata` (the notes repo's `ERRATA.md`), `/code`, `/letter`, `/yt`, and `/NNN` for each published episode. A drafts build adds the same page and `/NNN` link for each draft. `/feed.atom`, an Atom feed of published episodes (`sitegen/feed.py`; drafts never enter it). It also writes `sitemap.xml`, `robots.txt`, `CNAME` and `.nojekyll`.
 - `static/`: copied to the site root as is. Right now there's one stylesheet (`static/css/site.css`) and one script (`static/js/site.js`). Keep it that way.
 - `design/`: the mark (SVG and PNG) and `design/make_mark.py`, which draws it. The script writes into `design/mark/`. It also overwrites tracked brand files in `static/`: `favicon.svg`, `favicon.png`, `apple-touch-icon.png`, and `img/mark-hero.svg`, `img/mark-plate.svg`, `img/mark-small.svg` and `img/mark-banner-halo.svg`. Review that diff before committing.
 
@@ -79,6 +79,7 @@ See README, "Rules the build enforces". In short:
 
   On redirect pages, the per-page HTML checks stop after tags and title, so the gate doesn't verify that a `/NNN` redirect's target exists. The file-level scans below still cover redirect pages.
 - Spell out the framework's name: the gate looks for the three-letter acronym in page text, `<title>`, and the `alt`, `aria-label`, `title` and `content` attributes of every page except the redirects. The acronym is allowed only inside the repo name `AVE-Core`. Spell it out in other places too, even where the gate doesn't look.
+- Every built `.atom` and `.xml` file must parse. The Atom feed needs `id`, `title`, `updated` and a `rel="self"` link; every `href` on the site's own origin must resolve, anchors included; and the text of `title`, `summary` and `subtitle` goes through the placeholder and acronym rules.
 - Every built `.jpg`, `.jpeg`, `.png` and `.webp` file is scanned for EXIF/XMP markers and refused if it has them. SVGs aren't scanned.
 - When the owner's private forbidden-terms list is available, every built file and every tracked file is checked against it (see below). If neither source of the list is available (a fork, or a machine without `_private/forbidden.txt`), `check.py` prints a warning and skips that one rule; that run has not checked it, so say so.
 
@@ -123,6 +124,7 @@ Change data before you hand-edit HTML. These come from `content/episodes.toml` a
 - what the home page and the episode list say about episodes;
 - each episode page;
 - the `/NNN` short links;
-- the sitemap's episode entries.
+- the sitemap's episode entries;
+- the entries in `/feed.atom`.
 
 Links, the tagline, the contact route and the subscribe block come from `content/site.toml`. To publish an episode, follow the README, "Publishing an episode", and also set `arc`: the build refuses a published episode without one, and the README's step 1 doesn't list it. If a page would need hand-maintained lists, add a data file and a validator in `sitegen/content.py`, not static text in a template.
