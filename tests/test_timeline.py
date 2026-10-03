@@ -2,7 +2,7 @@ import re
 from html.parser import HTMLParser
 
 import pytest
-from conftest import ROOT, fixture_bib
+from conftest import PUBLISHED_EP1, ROOT, fixture_bib
 
 import build
 import check
@@ -53,9 +53,6 @@ SEED = "\n".join([
           basis="published"),
 ])
 SEED_KEYS = re.findall(r'key = "(\w+)"', SEED)
-
-PUBLISHED_EP1 = ('[[episode]]\nnumber = 1\nslug = "001-x"\ntitle = "X"\narc = "historical"\nstatus = "published"\n'
-                 'youtube_id = "abcdefghijk"\ndate = "2026-01-01"\nexcerpt = "An excerpt."\n')
 
 
 def load(root, text):
@@ -360,7 +357,7 @@ def test_claims_render_only_for_published_episodes(timeline_root):
     (timeline_root / "content" / "episodes.toml").write_text(PUBLISHED_EP1, encoding="utf-8")
     (timeline_root / "content" / "episodes" / "001-x.md").write_text("## Learning goals\n\n- a\n", encoding="utf-8")
     html = render(timeline_root, text)
-    assert '<a href="../episodes/001-x/">Episode 001</a> (claim ep001-c03)' in html
+    assert '<a href="../episodes/001-x/">Episode 001</a> (claim <a href="../episodes/001-x/#ep001-c03">ep001-c03</a>)' in html
 
 
 def test_an_unpublished_episode_is_not_linked_through_episodes_either(timeline_root):
