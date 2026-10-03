@@ -139,7 +139,7 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .nav a:not(.btn) { display: flex; align-items: center; height: 44px; border-top: 2px solid transparent; border-bottom: 2px solid transparent; font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; color: var(--body); }
 .nav a:not(.btn):hover { color: var(--fg); }
 .nav a[aria-current="page"] { color: var(--fg); border-bottom-color: var(--sky); }
-.nav-toggle { display: none; width: 44px; height: 44px; padding: 0; background: transparent; border: 0; color: var(--fg); align-items: center; justify-content: center; cursor: pointer; }
+.nav-toggle { display: none; flex-shrink: 0; width: 44px; height: 44px; padding: 0; background: transparent; border: 0; color: var(--fg); align-items: center; justify-content: center; cursor: pointer; }
 
 /* ------------------------------------------------------------ hero: the channel banner, then the title plate */
 .band { position: relative; height: clamp(160px, 20.84vw, 300px); display: flex; align-items: center; justify-content: center; overflow: hidden; background: #050508 center / cover no-repeat; }
@@ -330,6 +330,11 @@ a.trow:hover .trow__name { color: var(--sky); }
   .subscribe-form, .subscribe-form .field, .subscribe-form .field input, .subscribe-form .btn { width: 100%; }
   .fcard__body { padding: 28px 24px; }
   .block { padding: 40px 0; }
+}
+@media (max-width: 360px) {
+  .site-header .inner { gap: 12px; }
+  .brand { gap: 10px; }
+  .brand span { letter-spacing: 0.08em; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

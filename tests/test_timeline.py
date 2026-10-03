@@ -424,6 +424,43 @@ def test_the_menu_breakpoint_matches_in_site_css_and_html_py():
     assert len(in_css) == 1 and in_html == in_css
 
 
+def _css_rules_at(css, width):
+    """(selector, declarations) for every rule that applies at a viewport of `width` px, in source order.
+    Only the plain-rule and @media (max-width: Npx) forms that site.css uses are understood."""
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    rules, i = [], 0
+    while True:
+        m = re.compile(r"\s*([^{}]+)\{").match(css, i)
+        if not m:
+            return rules
+        head, i = m.group(1).strip(), m.end()
+        if head.startswith("@"):
+            depth, start = 1, i
+            while depth:
+                depth += {"{": 1, "}": -1}.get(css[i], 0)
+                i += 1
+            limit = re.fullmatch(r"@media \(max-width: (\d+)px\)", head)
+            if limit and width <= int(limit.group(1)):
+                rules += _css_rules_at(css[start:i - 1], width)
+        else:
+            end = css.index("}", i)
+            decls = dict(d.split(":", 1) for d in css[i:end].split(";") if ":" in d)
+            rules.append((head, {k.strip(): v.strip() for k, v in decls.items()}))
+            i = end + 1
+
+
+def test_the_menu_button_keeps_a_44px_tap_target_at_320px():
+    """CSS-level, not a browser test: CI has no headless browser in the gate. At 320px the button must be shown,
+    44px wide and tall, and not allowed to shrink, so the brand beside it cannot squeeze it."""
+    rules = _css_rules_at((ROOT / "static" / "css" / "site.css").read_text(encoding="utf-8"), 320)
+    toggle = {}
+    for selector, decls in rules:
+        if ".nav-toggle" in [s.strip() for s in selector.split(",")]:
+            toggle.update(decls)
+    assert toggle["display"] == "flex" and toggle["flex-shrink"] == "0"
+    assert toggle["width"] == toggle["height"] == "44px" and "min-width" not in toggle and "max-width" not in toggle
+
+
 def test_home_and_corrections_link_to_history(tmp_path):
     build.build(tmp_path / "site")
     home = (tmp_path / "site" / "index.html").read_text(encoding="utf-8")
