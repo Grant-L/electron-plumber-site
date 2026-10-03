@@ -55,8 +55,8 @@ Known gap: at 1000px wide or less, `.nav` is hidden by CSS and only `site.js` op
 See README, "Rules the build enforces". In short:
 
 - A published episode needs its notes file, and a notes file needs a published episode. Unpublished notes never go in `content/`.
-- Every page has balanced tags and a title. Every page except the short-link redirects also has a meta description and exactly one `h1`. Every internal link, asset and anchor resolves. No `[PLACEHOLDER]` text ships.
-- Spell out the framework's name everywhere: page text, titles and attributes. The three-letter acronym is allowed only inside the repo name `AVE-Core`.
+- Every page has balanced tags and a title. Every page except the short-link redirects also has a meta description and exactly one `h1`, every internal link, asset and anchor on it resolves, and no `[PLACEHOLDER]` text ships. The gate checks redirect pages only for balanced tags and a title, so it never verifies that a `/NNN` redirect's target exists.
+- Spell out the framework's name everywhere: page text, titles and attributes (the gate checks every page except the redirects). The three-letter acronym is allowed only inside the repo name `AVE-Core`.
 - Images carry no embedded metadata (EXIF/XMP).
 - The owner's private forbidden-terms list is checked against every built file and every tracked file (see below). If neither source of the list is available (a fork, or a machine without `_private/forbidden.txt`), `check.py` prints a warning and skips that one rule; that run has not checked it, so say so.
 
