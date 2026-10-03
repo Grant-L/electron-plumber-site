@@ -10,7 +10,7 @@ NAV = [("Episodes", "episodes/"), ("History", "history/"), ("Research", "researc
 # Below the menu-button breakpoint in site.css (1180px) the nav opens only with JavaScript. Without it, show the
 # links as a wrapped row under the brand instead, so a phone with JS off still has the main menu.
 NOSCRIPT_NAV = ('<noscript><style>@media (max-width: 1180px) { .nav-toggle { display: none; } '
-                '.site-header .inner { height: auto; flex-wrap: wrap; row-gap: 0; padding-top: 12px; padding-bottom: 12px; } '
+                '.site-header .inner { height: auto; flex-wrap: wrap; row-gap: 0; padding-top: 12px; padding-bottom: 12px; padding-right: var(--pad); } '
                 '.nav { display: flex; position: static; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0 24px; '
                 'padding: 0; border: 0; } .nav a:not(.btn) { height: 44px; } .nav a:not(.btn):not([aria-current]) { border-bottom-color: transparent; } '
                 '.nav .btn { margin-top: 0; } }</style></noscript>')
