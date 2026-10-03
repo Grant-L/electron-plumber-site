@@ -396,6 +396,15 @@ def test_nav_puts_history_right_after_episodes(tmp_path):
         assert re.search(r'href="[./]*history/">History</a>', text) and 'aria-current="page">History' not in text
 
 
+def test_without_javascript_the_narrow_header_still_shows_the_nav(tmp_path):
+    build.build(tmp_path / "site")
+    css = (ROOT / "static" / "css" / "site.css").read_text(encoding="utf-8")
+    breakpoint = re.search(r"@media \(max-width: (\d+)px\) \{\n  \.nav-toggle \{ display: flex; \}", css).group(1)
+    for page in ("index.html", "history/index.html", "episodes/index.html", "404.html"):
+        head = (tmp_path / "site" / page).read_text(encoding="utf-8").split("</head>")[0]
+        assert f"<noscript><style>@media (max-width: {breakpoint}px) {{ .nav-toggle {{ display: none; }}" in head
+
+
 def test_home_and_corrections_link_to_history(tmp_path):
     build.build(tmp_path / "site")
     home = (tmp_path / "site" / "index.html").read_text(encoding="utf-8")
