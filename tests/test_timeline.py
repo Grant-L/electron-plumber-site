@@ -553,7 +553,8 @@ def test_without_javascript_the_markup_is_otherwise_unchanged(timeline_root):
 def test_the_axis_css_only_styles_what_site_js_adds():
     css = re.sub(r"/\*.*?\*/", "", (ROOT / "static" / "css" / "site.css").read_text(encoding="utf-8"), flags=re.S)
     start = css.index(".tl-axis {")
-    end = css.index("@media print {\n  .tl-axis { display: none; }\n}") + len("@media print {\n  .tl-axis { display: none; }\n}")
+    last = "@media print, (max-width: 560px) {\n  .tl-axis { display: none; }\n}"
+    end = css.index(last) + len(last)
     for selector in re.findall(r"([^{}]+)\{", css[start:end]):
         selector = selector.strip()
         assert selector.startswith("@media") or all("tl-axis" in s or "tl--current" in s for s in selector.split(",")), selector
@@ -570,6 +571,6 @@ def test_site_js_and_css_stay_within_the_axis_budget():
     """Raw bytes as served: the site has no minify step. Gzip is what the browser transfers."""
     js = (ROOT / "static" / "js" / "site.js").read_bytes()
     css = (ROOT / "static" / "css" / "site.css").read_bytes()
-    assert len(css) - CSS_BASELINE <= 4 * 1024
+    assert len(css) - CSS_BASELINE <= 3_900
     assert len(js) - JS_BASELINE <= 10_000
     assert len(gzip.compress(js, 9)) - JS_GZIP_BASELINE <= 3.5 * 1024

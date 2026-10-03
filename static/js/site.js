@@ -98,68 +98,70 @@
   const on = (el, type, fn) => el.addEventListener(type, fn);
   const plural = (n) => n + (n === 1 ? " event" : " events");
   const pick = (f, v = "all") => box.querySelector(`[data-filter="${f}"] .chip[data-value="${v}"]`);
-  const pressed = (f) => box.querySelector(`[data-filter="${f}"] [aria-pressed="true"]`).dataset.value;
   const groups = [...box.querySelectorAll("[data-filter]")].map((g) => g.dataset.filter);
   const items = [...d.querySelectorAll(".tl[data-year]")];
-  const first = () => items.find((li) => !li.hidden);
   const status = box.querySelector("[role=status]");
-  const phone = matchMedia("(max-width: 560px)");
+  // Phones get no axis; the chips fold behind this button.
+  const fold = make("button", "__filter chip", box.firstElementChild, "Filter");
+  fold.parentNode.prepend(fold);
+  fold.ariaExpanded = false;
+  on(fold, "click", () => { fold.ariaExpanded = fold.ariaExpanded === "false"; });
   const eras = chips.map((chip, i) => {
     const to = chip.dataset.to;
     return { slug: chip.dataset.value, chip, i, label: chip.textContent, from: +chip.dataset.from,
       to: +to || new Date().getFullYear(), end: to || "present" };
   });
-  const span = (e) => e.label + ", " + e.from + " to " + e.end;
-  const axis = d.createElement("nav"), inner = axis.appendChild(d.createElement("div")), bands = make("div", "__bands", inner);
+  const axis = d.createElement("nav"), inner = make("div", "", axis), bands = make("div", "__bands", inner);
   axis.className = "tl-axis";
   inner.className = "inner";
-  axis.setAttribute("aria-label", "Timeline, " + eras[0].from + " to " + eras[eras.length - 1].end);
-  const scroll = make("div", "__scroll", inner), track = make("div", "__track", scroll);
-  const tip = make("div", "__tip", inner), full = make("button", "__full chip", inner, "Full span");
-  tip.setAttribute("aria-hidden", "true");
-  let zoom = null, stops = [], tipFor = null, armed = false, touch = false, raf = 0;
+  axis.ariaLabel = "Timeline, " + eras[0].from + " to " + eras[eras.length - 1].end;
+  const scroll = make("div", "__scroll", inner), track = make("div", "__track", scroll), tip = make("div", "__tip", inner);
+  tip.ariaHidden = true;
+  let zoom = null, stops = [], tipFor = null, armed = false, raf = 0;
+  eras.forEach((e) => {
+    e.band = make("button", "__band", bands);
+    make("span", "__label", e.band, e.label);
+    make("span", "__years", e.band, e.from + "\u2013" + e.end);
+    e.count = make("span", "__count", e.band);
+    on(e.band, "click", () => pick("era", e === zoom ? "all" : e.slug).click());
+  });
+  const full = make("button", "__band tl-axis__full", bands);
+  make("span", "", full, "\u00d7").ariaHidden = true;
+  full.append(" Full span");
   const zoomOut = () => {
     const was = zoom, here = d.activeElement === full;
     pick("era").click();
     if (here) { was.band.focus(); }
   };
   on(full, "click", zoomOut);
-
-  eras.forEach((e) => {
-    e.band = make("button", "__band", bands);
-    make("span", "__label", e.band, e.label);
-    make("span", "__to", make("span", "__years", e.band, "" + e.from), "\u2013" + e.end);
-    e.count = make("span", "__count", e.band);
-    on(e.band, "click", () => {
-      const on = e === zoom;
-      pick("era", on ? "all" : e.slug).click();
-      if (!on && phone.matches && first()) { first().scrollIntoView(); }
-    });
-  });
   const marks = items.map((li) => {
     const a = make("a", "__dot", track), m = { li, a, year: +li.dataset.year, era: eras.find((e) => e.slug === li.dataset.era) };
     [m.date, m.title] = [".tl__date", ".tl__title"].map((q) => li.querySelector(q).textContent.trim());
     a.href = "#" + li.id;
     a.tabIndex = -1;
-    a.setAttribute("aria-label", m.date + ": " + m.title);
+    a.ariaLabel = m.date + ": " + m.title;
     a.mark = m;
     return m;
   });
 
+  // Beside its dot, never down over the list: above in the first lane, below in the others.
   const showTip = (el) => {
-    tipFor = el;
+    tipFor = el && el.mark ? el : null;
+    tip.hidden = !tipFor;
+    if (!tipFor) { return; }
     tip.textContent = "";
-    tip.hidden = !(el && el.mark);
-    if (tip.hidden) { return; }
     make("b", "", tip, el.mark.date);
     make("span", "", tip, el.mark.title);
     const ib = inner.getBoundingClientRect(), r = el.getBoundingClientRect(), pad = parseFloat(getComputedStyle(inner).paddingLeft);
-    tip.style.left = Math.max(pad, Math.min(r.left + r.width / 2 - ib.left - tip.offsetWidth / 2, ib.width - pad - tip.offsetWidth)) + "px";
+    const x = r.left + r.width / 2 - ib.left, w = tip.offsetWidth, left = Math.max(pad, Math.min(x - w / 2, ib.width - pad - w));
+    tip.classList.toggle("tl-axis__tip--below", el.lane > 0);
+    tip.style.cssText = `left:${left}px;top:${el.lane ? r.bottom - ib.top + 4 : r.top - ib.top - tip.offsetHeight - 4}px;--x:${x - left}px`;
   };
+  const focused = () => (stops.includes(d.activeElement) ? d.activeElement : null);
   const current = (li, focus) => {
     marks.forEach((m) => {
       m.li.classList.toggle("tl--current", m.li === li);
-      if (m.li === li) { m.a.setAttribute("aria-current", "true"); } else { m.a.removeAttribute("aria-current"); }
+      m.a.ariaCurrent = m.li === li ? "true" : null;
     });
     // After the link's own fragment navigation, which would otherwise reset focus.
     if (focus) { setTimeout(() => li.querySelector(".tl__title a").focus({ preventScroll: true })); }
@@ -170,67 +172,68 @@
   };
 
   const layout = () => {
-    const hit = parseFloat(getComputedStyle(axis).getPropertyValue("--hit")) || 24, shown = zoom ? [zoom] : eras;
-    const focused = stops.includes(d.activeElement), was = focused ? d.activeElement : stops.find((s) => s.tabIndex === 0) || {};
-    const w = zoom ? Math.max(scroll.clientWidth, (zoom.to - zoom.from + 1) * 12) : scroll.clientWidth;
-    const bw = w / shown.length;
-    track.querySelectorAll(".tl-axis__zone, .tl-axis__tick, .tl-axis__more").forEach((n) => n.remove());
+    const hit = parseFloat(getComputedStyle(axis).getPropertyValue("--hit")), shown = zoom ? [zoom] : eras;
+    const f = focused(), was = f || stops.find((s) => s.tabIndex === 0) || {};
+    const w = zoom ? Math.max(scroll.clientWidth, (zoom.to - zoom.from + 1) * 12) : scroll.clientWidth, bw = w / shown.length;
+    let lanes = 1;
+    [...track.children].forEach((n) => n.mark || n.remove());
     marks.forEach((m) => { m.a.hidden = true; });
     stops = [];
     const place = (el, x, lane, era) => {
-      Object.assign(el.style, { left: x + "px", top: lane * hit + "px" });
-      Object.assign(el, { x, era });
+      el.style.cssText = `left:${x}px;top:${lane * hit}px`;
+      Object.assign(el, { x, lane, era });
       stops.push(el);
+      lanes = Math.max(lanes, lane + 1);
     };
     shown.forEach((e, k) => {
       const px = (y) => Math.max(hit / 2, Math.min(bw - hit / 2, (y - e.from) / (e.to - e.from + 1) * bw)) + k * bw;
-      Object.assign(make("span", "__zone" + (e.i % 2 ? " tl-axis__zone--alt" : ""), track).style, { left: k * bw + "px", width: bw + "px" });
+      make("span", "__zone" + (e.i % 2 ? " tl-axis__zone--alt" : ""), track).style.cssText = `left:${k * bw}px;width:${bw}px`;
       for (let y = Math.ceil(e.from / 10) * 10, last = -1e9; y <= e.to; y += 10) {
         const tick = make("span", "__tick", track);
         tick.style.left = px(y) + "px";
         if (px(y) - last >= 40) { tick.textContent = y; last = px(y); }
       }
-      const lanes = [-1e9, -1e9, -1e9], ms = marks.filter((m) => m.era === e && !m.li.hidden);
-      // Three lanes. Past that the full span merges the era into one cluster; zoomed in, the last lane overlaps.
+      const ends = [-1e9, -1e9, -1e9], ms = marks.filter((m) => m.era === e && !m.li.hidden);
+      // At most three lanes, the track only as tall as those used. Past that the full span merges the era into
+      // one cluster; zoomed in, the last lane overlaps.
       const crowded = ms.some((m) => {
         m.x = px(m.year);
-        m.lane = lanes.findIndex((end) => m.x - end >= hit);
+        m.lane = ends.findIndex((end) => m.x - end >= hit);
         if (m.lane < 0 && !zoom) { return true; }
-        lanes[m.lane < 0 ? (m.lane = 2) : m.lane] = m.x;
+        ends[m.lane < 0 ? (m.lane = 2) : m.lane] = m.x;
       });
       if (crowded) {
         const more = make("button", "__dot tl-axis__more", track, "+" + ms.length);
-        more.setAttribute("aria-label", "Zoom to " + e.band.getAttribute("aria-label"));
+        more.ariaLabel = "Zoom to " + e.band.ariaLabel;
         on(more, "click", () => e.chip.click());
-        place(more, k * bw + bw / 2, 1, e);
+        place(more, k * bw + bw / 2, 0, e);
       } else {
         ms.forEach((m) => { m.a.hidden = false; place(m.a, m.x, m.lane, e); });
       }
     });
-    track.style.width = w + "px";
+    track.style.cssText = `width:${w}px;--lanes:${lanes}`;
     stops.sort((a, b) => a.x - b.x);
     const near = (s) => Math.abs(s.x - (was.x || 0));
     const keep = stops.includes(was) ? was : stops.reduce((best, s) => (best && near(best) <= near(s) ? best : s), null);
-    rove(keep, focused);
-    showTip(focused ? keep : null);
+    rove(keep, f);
+    showTip(f && keep);
   };
 
   const sync = () => {
-    const was = zoom, shown = items.filter((li) => !li.hidden).length;
-    zoom = eras.find((e) => e.slug === pressed("era")) || null;
+    const was = zoom, shown = items.filter((li) => !li.hidden);
+    zoom = eras.find((e) => e.chip.ariaPressed === "true") || null;
     full.hidden = !zoom;
+    // Zoomed, the row holds only that era's band, so no label sits over another era's years.
     eras.forEach((e) => {
-      const n = items.filter((li) => li.dataset.era === e.slug && groups.every((f) => {
-        const v = pressed(f);
-        return f === "era" || v === "all" || (" " + li.dataset[f] + " ").includes(" " + v + " ");
-      })).length;
+      const n = shown.filter((li) => li.dataset.era === e.slug).length;
+      e.band.hidden = !!zoom && e !== zoom;
       e.count.textContent = n;
-      e.band.setAttribute("aria-label", span(e) + ", " + plural(n));
-      e.band.setAttribute("aria-pressed", e === zoom);
+      e.band.ariaLabel = `${e.label} ${e.from}\u2013${e.end}, ${plural(n)}`;
+      e.band.ariaPressed = e === zoom;
     });
     if (zoom !== was) { scroll.scrollLeft = 0; }
     layout();
-    if (zoom && shown && status) { status.textContent = span(zoom) + ": " + plural(shown); }
+    if (zoom && shown.length && status) { status.textContent = `${zoom.label}, ${zoom.from} to ${zoom.end}: ${plural(shown.length)}`; }
   };
 
   const fromHash = () => {
@@ -246,28 +249,26 @@
     }
   };
 
-  on(track, "pointerdown", (ev) => {
-    touch = ev.pointerType === "touch";
-    armed = tipFor === ev.target.closest(".tl-axis__dot");
-  });
+  on(track, "pointerdown", (ev) => { armed = ev.pointerType !== "touch" || tipFor === ev.target.closest(".tl-axis__dot"); });
   on(track, "click", (ev) => {
     const a = ev.target.closest("a.tl-axis__dot");
     if (!a) { return; }
     rove(a);
     // Touch has no hover: the first tap shows the tip, the second follows the link. Enter's click has detail 0.
-    if (touch && ev.detail && !armed) { ev.preventDefault(); showTip(a); return; }
+    if (ev.detail && !armed) { ev.preventDefault(); showTip(a); return; }
     current(a.mark.li, true);
   });
   on(track, "focusin", (ev) => showTip(ev.target));
   on(track, "focusout", () => showTip(null));
-  on(track, "mouseover", (ev) => showTip(ev.target.closest(".tl-axis__dot") || tipFor));
-  on(track, "mouseleave", () => showTip(stops.includes(d.activeElement) ? d.activeElement : null));
+  on(track, "mouseover", (ev) => showTip(ev.target.closest(".tl-axis__dot") || focused()));
+  on(track, "mouseleave", () => showTip(focused()));
+  on(scroll, "scroll", () => showTip(focused()));
   on(axis, "keydown", (ev) => {
     const i = stops.indexOf(d.activeElement), k = ev.key, last = stops.length - 1;
     const firsts = stops.map((s, j) => j).filter((j) => !j || stops[j].era !== stops[j - 1].era);
     const era = firsts.filter((j) => j <= i).length - 1 + (k === "PageDown") - (k === "PageUp");
-    const to = { ArrowLeft: i - 1, ArrowRight: i + 1, Home: 0, End: last,
-      PageUp: firsts[Math.max(0, era)], PageDown: firsts[Math.min(firsts.length - 1, era)] }[k];
+    const page = firsts[Math.max(0, Math.min(firsts.length - 1, era))];
+    const to = { ArrowLeft: i - 1, ArrowRight: i + 1, Home: 0, End: last, PageUp: page, PageDown: page }[k];
     if (k === "Escape" && (tipFor || zoom)) {
       if (tipFor) { showTip(null); } else { zoomOut(); }
     } else if (i < 0 || to === undefined) {
@@ -280,7 +281,7 @@
   on(box, "filters:change", sync);
   on(window, "hashchange", fromHash);
   on(window, "resize", () => { raf = raf || requestAnimationFrame(() => { raf = 0; layout(); }); });
-  box.after(axis);
+  box.before(axis);
   sync();
   fromHash();
 })();
