@@ -28,9 +28,9 @@ def esc(text):
 class Ctx:
     """Everything a template needs, plus link helpers that stay relative so the site works from any base path."""
 
-    def __init__(self, site, episodes, path, version, absolute=False, timeline=()):
+    def __init__(self, site, episodes, path, version, absolute=False, timeline=(), start=()):
         self.site, self.episodes, self.path, self.version = site, episodes, path, version
-        self.timeline = timeline
+        self.timeline, self.start = timeline, start
         depth = path.count("/")
         self.root = "/" if absolute else ("../" * depth if depth else "./")
 
@@ -128,6 +128,7 @@ def footer(ctx):
             + column("Contact", "Report an error, or get in touch", ctx.to("about/") + "#contact", external=False))
     legal = "".join(mono(t) for t in ("Views my own.", "Episode notes: CC BY-NC-ND 4.0", "Research code: Apache-2.0",
                                       f"&copy; 2026 {esc(s['author'])}"))
+    legal += f'<a class="mono" href="{ctx.to("feed.atom")}">Feed</a>'
     return (f'<footer class="site-footer"><div class="inner"><div class="footer__plate">'
             f'<img src="{ctx.to("img/mark-plate.svg")}" alt="" width="104" height="104">'
             f'<div><div class="footer__title">The Electron Plumber</div><div class="footer__tag">{esc(s["tagline"])}</div></div></div>'
@@ -178,6 +179,7 @@ def page(ctx, *, title, description, body, active=None, arc=None, noindex=False,
 <link rel="icon" href="{ctx.to('favicon.svg')}" type="image/svg+xml">
 <link rel="icon" href="{ctx.to('favicon.png')}" sizes="144x144" type="image/png">
 <link rel="apple-touch-icon" href="{ctx.to('apple-touch-icon.png')}">
+<link rel="alternate" type="application/atom+xml" title="The Electron Plumber: episodes" href="{ctx.to('feed.atom')}">
 <link rel="preload" as="font" href="{ctx.to(FONT_PRELOAD)}" type="font/woff2" crossorigin>
 {preload}<link rel="stylesheet" href="{ctx.asset('css/site.css')}">
 {NOSCRIPT_NAV}

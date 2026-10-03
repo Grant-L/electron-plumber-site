@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 from urllib.parse import urlparse
 
-from sitegen import content, pages
+from sitegen import content, feed, pages
 from sitegen.html import RECORDS, Ctx
 
 ROOT = Path(__file__).resolve().parent
@@ -25,6 +25,7 @@ def build(out: Path, drafts: bool = False):
 
     site, episodes = content.load(ROOT, drafts=drafts)
     timeline = content.load_timeline(ROOT, episodes)
+    start = content.load_start(ROOT, episodes)
     site["_root"] = str(ROOT)
 
     if out.exists():
@@ -42,11 +43,12 @@ def build(out: Path, drafts: bool = False):
             written.append(path)
 
     def ctx(path, **kw):
-        return Ctx(site, episodes, path, version, timeline=timeline, **kw)
+        return Ctx(site, episodes, path, version, timeline=timeline, start=start, **kw)
 
     write("index.html", pages.home(ctx("")))
     write("episodes/index.html", pages.episodes(ctx("episodes/")))
     write("history/index.html", pages.history(ctx("history/")))
+    write("start/index.html", pages.start(ctx("start/")))
     write("research/index.html", pages.research(ctx("research/")))
     write(f"{RECORDS[1]}index.html", pages.records(ctx(RECORDS[1])))
     write("about/index.html", pages.about(ctx("about/")))
@@ -67,6 +69,7 @@ def build(out: Path, drafts: bool = False):
     for short, target in redirects.items():
         canonical = f"{base}/{target.removeprefix('../')}" if target.startswith("../") else target
         write(f"{short}/index.html", pages.redirect(target, canonical), listed=False)
+    write("feed.atom", feed.episodes_feed(site, [e for e in episodes if e.status == "published" and not e.draft]), listed=False)
 
     urls = "".join(f"<url><loc>{base}/{p.removesuffix('index.html')}</loc></url>" for p in written)
     write("sitemap.xml", f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n', listed=False)

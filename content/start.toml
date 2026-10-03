@@ -1,0 +1,10 @@
+# The Start here page. Each step points at a page that already exists; its words come from that page
+# (title and meta description) or from the episode's own data. No free text here, so no new claims.
+[[step]]
+target = "episode:1"   # Episode 001's page once published; until then the home deck and "in production"
+
+[[step]]
+target = "history/"
+
+[[step]]
+target = "episodes/"

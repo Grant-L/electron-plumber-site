@@ -16,6 +16,7 @@ make test       # unit tests (pytest)
 |---|---|
 | `content/site.toml` | Site-wide settings: links, tagline, contact address, newsletter endpoint. |
 | `content/episodes.toml` | One entry per announced episode. Status drives everything the site says about it. |
+| `content/start.toml` | The Start here page's steps, one `[[step]]` each with a `target` only: `episode:N` or an existing page. Each step's words come from that page's title and meta description, or from the episode's data. |
 | `content/episodes/*.md` | Episode notes for **published** episodes: the same file that is published in the [notes repo](https://github.com/Grant-L/electron-plumber-notes). |
 | `content/timeline.toml` | The History page's events, one `[[event]]` each. **Generated** by `tools/export_timeline.py` from the Historian's confirmed, public entries; never edited by hand. A missing file means an empty timeline. |
 | `content/sources.bib` | A verbatim copy of the notes repo's `sources.bib`, with one header line naming the notes commit it was copied from. Every timeline source key must be in it. |
@@ -34,12 +35,13 @@ make test       # unit tests (pytest)
 3. Add the next episode as `status = "in-production"` if its title may be public.
 4. Open a pull request. CI builds and checks it; merging deploys it.
 
-The home page, the episode list and the short link (`/001`) follow from that data. Until an episode is published the site says "in production" and offers nothing to watch.
+The home page, the episode list, the short link (`/001`) and `/feed.atom`, an Atom feed of published episodes, follow from that data. Until an episode is published the site says "in production" and offers nothing to watch.
 
 ## Rules the build enforces
 
 - A published episode without a handout is refused. So is a handout for an episode that is not published.
 - Every page has a title, a description and exactly one `h1`. Every internal link, `srcset` candidate and anchor resolves, and so does every `url()` in a stylesheet. No `[PLACEHOLDER]` text ships.
+- Every built `.atom` and `.xml` file is well-formed. The feed has its required elements, its links to the site resolve, and its titles and summaries follow the placeholder and spelled-out-name rules.
 - The framework's name is spelled out on the site, in page text, titles and attributes alike.
 - Images (JPEG, PNG, WebP, AVIF) carry no embedded metadata. TOML text is escaped wherever it lands in a page.
 - The owner's private list of terms that must never ship is checked against every built file and every tracked file. The list is not in this repo: it comes from `_private/forbidden.txt` locally and from the `FORBIDDEN_TERMS` repository secret in CI. Without it (a fork, for example) that one rule is skipped with a warning.

@@ -258,6 +258,8 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .trow__text { flex: 1; min-width: 0; font-size: clamp(16px, 1.25vw, 18px); line-height: 1.6; }
 .trow__kind { width: 130px; flex-shrink: 0; text-align: right; font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sky); }
 a.trow:hover .trow__name { color: var(--sky); }
+.start-steps { list-style: none; padding: 0; }
+.start-steps .trow { align-items: flex-start; }
 .claim { padding: 24px 28px; background: var(--panel); border: 1px solid var(--line); font-family: var(--mono); font-size: 15px; line-height: 24px; color: var(--fg); overflow-wrap: anywhere; }
 .claim b { font-weight: 400; color: var(--orange); }
 .claim i { font-style: normal; color: var(--muted); }
