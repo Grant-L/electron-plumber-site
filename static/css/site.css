@@ -233,6 +233,7 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl-axis__dot::before { content: ""; width: 10px; height: 10px; border: 2px solid currentColor; border-radius: 50%; background: currentColor; }
 .tl-axis__dot:hover, .tl-axis__dot:focus-visible, .tl-axis__dot[aria-current] { color: var(--fg); outline-offset: -2px; }
 .tl-axis__dot[aria-current]::before { width: 14px; height: 14px; background: var(--bg); }
+.tl-axis__dot::after { content: ""; position: absolute; inset: 0; translate: var(--off); }
 .tl-axis__more { width: auto; min-width: var(--hit); padding: 0 6px; border: 1px solid currentColor; border-radius: 12px; font: 11px var(--mono); }
 .tl-axis__more::before { content: none; }
 .tl-axis__tip { position: absolute; z-index: 2; max-width: min(320px, 80%); padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-left: 2px solid var(--sky); color: var(--fg); font: 15px/1.4 var(--serif); pointer-events: none; }
@@ -357,6 +358,7 @@ a.trow:hover .trow__name { color: var(--sky); }
 }
 @media (max-width: 1180px) {
   .nav-toggle { display: flex; }
+  .footer__legal a { padding: 11px 8px; margin: -11px -8px; }
   .nav { display: none; position: absolute; left: 0; right: 0; top: 64px; z-index: 40; flex-direction: column; align-items: stretch; gap: 0; padding: 8px var(--pad) 24px; background: var(--bg); border-bottom: 1px solid var(--line); }
   .nav.is-open { display: flex; }
   .nav a:not(.btn) { height: 52px; border-bottom: 1px solid var(--line); border-top: 0; }

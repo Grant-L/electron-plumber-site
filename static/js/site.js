@@ -219,8 +219,9 @@
     [...track.children].forEach((n) => n.mark || n.remove());
     marks.forEach((m) => { m.a.hidden = true; });
     stops = [];
-    const place = (el, x, lane, era) => {
-      el.style.cssText = `left:${x}px;top:${lane * hit}px`;
+    const place = (el, x, lane, era, at = x) => {
+      const left = Math.min(x, at + hit / 2 - 7);
+      el.style.cssText = `left:${left}px;top:${lane * hit}px;--off:${at - left}px`;
       Object.assign(el, { x, lane, era });
       stops.push(el);
       lanes = Math.max(lanes, lane + 1);
@@ -233,14 +234,15 @@
         tick.style.left = px(y) + "px";
         if (px(y) - last >= 40) { tick.textContent = y; last = px(y); }
       }
-      const ends = [-1e9, -1e9, -1e9], ms = marks.filter((m) => m.era === e && !m.li.hidden);
+      const ends = [1e9, 1e9, 1e9], ms = marks.filter((m) => m.era === e && !m.li.hidden);
       // At most three lanes, the track only as tall as those used. Past that the full span merges the era into
       // one cluster; zoomed in, the last lane overlaps.
-      const crowded = ms.some((m) => {
+      const crowded = ms.reverse().some((m) => {
         m.x = px(m.year);
-        m.lane = ends.findIndex((end) => m.x - end >= hit);
-        if (m.lane < 0 && !zoom) { return true; }
-        ends[m.lane < 0 ? (m.lane = 2) : m.lane] = m.x;
+        // Hit areas stay apart but may sit left of their dots.
+        m.lane = ends.findIndex((end) => end - hit >= Math.max(m.x + 16 - hit, k * bw + hit / 2));
+        if (m.lane < 0) { if (!zoom) { return true; } ends[m.lane = 2] = 1e9; }
+        ends[m.lane] = m.hit = Math.min(m.x, ends[m.lane] - hit);
       });
       if (crowded) {
         // The name starts with the visible "+N", so voice control users can say what they see.
@@ -249,7 +251,7 @@
         on(more, "click", () => e.chip.click());
         place(more, k * bw + bw / 2, 0, e);
       } else {
-        ms.forEach((m) => { m.a.hidden = false; place(m.a, m.x, m.lane, e); });
+        ms.reverse().forEach((m) => { m.a.hidden = false; place(m.a, m.x, m.lane, e, m.hit); });
       }
     });
     track.style.cssText = `width:${w}px;--lanes:${lanes}`;
