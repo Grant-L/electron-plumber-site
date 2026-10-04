@@ -6,6 +6,7 @@ import datetime
 import re
 import struct
 import tomllib
+import urllib.parse
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -57,6 +58,18 @@ HISTORY_IMAGES_MAX_BYTES = 200 * 1024
 ALT_OPENERS = ("image of", "picture of", "photo of")
 DOI = re.compile(r"10\.\d{4,9}/\S+")
 MD_LINK = re.compile(r"\]\(|<https?://")
+# Reading links on a timeline entry (a source's url and fulltext_url, and [[event.further]]): only these hosts.
+FURTHER_HOSTS = frozenset({
+    "www.maths.tcd.ie", "archive.org", "mathshistory.st-andrews.ac.uk", "ajsonline.org", "www.aps.org",
+    "history.aip.org", "www.nobelprize.org", "journals.aps.org", "arxiv.org", "physics.aps.org", "royalsocietypublishing.org",
+})
+LINK_QUERY_KEYS = ("id", "page")
+TRACKING_QUERY = re.compile(r"utm_.*|fbclid|gclid|ref", re.I)
+# (host, path prefix), lowercase: the owner's own repositories, which may hold unpublished material.
+PRIVATE_LINKS = (("github.com", "/grant-l/"), ("raw.githubusercontent.com", "/grant-l/"), ("gist.github.com", "/grant-l/"),
+                 ("codeload.github.com", "/grant-l/"))
+MAX_FURTHER = 2
+FURTHER_TITLE_MAX, FURTHER_PUBLISHER_MAX = 100, 60
 # Timeline titles and summaries render as plain text, so a character that reads as Markdown emphasis or code is refused.
 MARKUP = re.compile(r"[*_`]")
 
@@ -254,7 +267,15 @@ class Source:
     doi: str = ""
     url: str = ""
     note: str = ""
+    fulltext_url: str = ""
     entry: object = field(default=None, init=False, repr=False)  # the bib.Entry, set by load_timeline
+
+
+@dataclass
+class Further:
+    title: str
+    publisher: str
+    url: str
 
 
 @dataclass
@@ -280,6 +301,7 @@ class Event:
     episodes: list = field(default_factory=list)
     related: list = field(default_factory=list)
     sources: list = field(default_factory=list)  # TOML [[event.source]]
+    further: list = field(default_factory=list)  # TOML [[event.further]], Further once loaded
     image: object = None  # TOML [event.image], an Image once loaded
 
     @property
@@ -483,7 +505,7 @@ def _sources(raw, where, sources_bib):
             src = Source(**raw_source)
         except TypeError as exc:
             raise ContentError(f"{where}, source: {exc}") from None
-        for key in ("key", "kind", "locator", "doi", "url", "note"):
+        for key in ("key", "kind", "locator", "doi", "url", "note", "fulltext_url"):
             if not isinstance(getattr(src, key), str):
                 raise ContentError(f"{where}, source {src.key!r}: {key} must be a string")
         if src.key not in sources_bib:
@@ -498,11 +520,81 @@ def _sources(raw, where, sources_bib):
             bib_doi = sources_bib[src.key].fields.get("doi", "")
             if bib_doi and bib_doi.lower() != src.doi.lower():
                 raise ContentError(f"{where}, source {src.key!r}: doi disagrees with sources.bib")
-        if src.url and not src.url.startswith("https://"):
-            raise ContentError(f"{where}, source {src.key!r}: url must start with https://")
+        for key in ("url", "fulltext_url"):
+            if getattr(src, key) and not getattr(src, key).startswith("https://"):
+                raise ContentError(f"{where}, source {src.key!r}: {key} must start with https://")
         src.entry = sources_bib[src.key]
         sources.append(src)
     return sources
+
+
+def _reading_link(url, where, name):
+    """A reading link on a timeline entry: https, an allowed host, no tracking, nothing private."""
+    if not isinstance(url, str) or not url.startswith("https://"):
+        raise ContentError(f"{where}: {name} must start with https://")
+    parts = urllib.parse.urlsplit(url)
+    host, path = (parts.hostname or "").lower(), parts.path.lower()
+    if any(host == h and path.startswith(p) for h, p in PRIVATE_LINKS) or "_private" in f"{host}{path}":
+        raise ContentError(f"{where}: {name} points at a private location")
+    if host not in FURTHER_HOSTS or parts.port or parts.username or set(url) & set(" \t\n\r<>\"'"):
+        raise ContentError(f"{where}: {name} host {host!r} is not in FURTHER_HOSTS")
+    for key, _ in urllib.parse.parse_qsl(parts.query, keep_blank_values=True):
+        if TRACKING_QUERY.fullmatch(key):
+            raise ContentError(f"{where}: {name} carries a tracking parameter {key!r}")
+        if key not in LINK_QUERY_KEYS:
+            raise ContentError(f"{where}: {name} query parameter {key!r} is not allowed (only {', '.join(LINK_QUERY_KEYS)})")
+    return url
+
+
+def _reading_text(value, where, name, limit, terms):
+    if not isinstance(value, str) or not value.strip() or len(value) > limit or set(value) & set("\n\r<>"):
+        raise ContentError(f"{where}: further {name} must be one line of 1 to {limit} characters, without < or >")
+    if ACRONYM.search(value):
+        raise ContentError(f"{where}: further {name} must spell out the framework's name (three-letter acronym found)")
+    if PLACEHOLDER.search(value):
+        raise ContentError(f"{where}: further {name} has a capitalised bracket placeholder (write [sic] in lowercase)")
+    if MARKUP.search(value) or MD_LINK.search(value):
+        raise ContentError(f"{where}: further {name} must be plain text (no *, _, ` or links)")
+    if any(t in value.lower() for t in terms):
+        raise ContentError(f"{where}: further {name} has a term that must never appear on a channel surface")
+    return value
+
+
+def _further(raw, where, terms):
+    """[[event.further]] as a list of Further: at most MAX_FURTHER, each a title, a publisher and a reading link."""
+    if not isinstance(raw, list) or not all(isinstance(f, dict) for f in raw):
+        raise ContentError(f"{where}: further must be [[event.further]] tables")
+    if len(raw) > MAX_FURTHER:
+        raise ContentError(f"{where}: at most {MAX_FURTHER} [[event.further]] blocks, got {len(raw)}")
+    out = []
+    for item in raw:
+        try:
+            further = Further(**item)
+        except TypeError as exc:
+            raise ContentError(f"{where}, further: {exc}") from None
+        _reading_text(further.title, where, "title", FURTHER_TITLE_MAX, terms)
+        _reading_text(further.publisher, where, "publisher", FURTHER_PUBLISHER_MAX, terms)
+        _reading_link(further.url, where, "further url")
+        out.append(further)
+    return out
+
+
+def _check_reading_links(ev, where):
+    """Each entry's reading links, DOI targets included, point at different pages."""
+    seen = {}
+    for src in ev.sources:
+        doi = src.doi or src.entry.fields.get("doi", "")
+        if doi:
+            seen[f"https://doi.org/{doi}".lower()] = f"source {src.key!r} doi"
+    links = [(s.url, f"source {s.key!r} url") for s in ev.sources if s.url]
+    links += [(s.fulltext_url, f"source {s.key!r} fulltext_url") for s in ev.sources if s.fulltext_url]
+    links += [(f.url, "further url") for f in ev.further]
+    for url, name in links:
+        _reading_link(url, where, name)
+        key = url.lower().rstrip("/")
+        if key in seen:
+            raise ContentError(f"{where}: {name} duplicates the {seen[key]}")
+        seen[key] = name
 
 
 def validate_episode_sources(root: Path, episodes):
@@ -640,6 +732,8 @@ def load_timeline(root: Path, episodes, today=None, files=True):
         ev.sources = sources = _sources(ev.sources, where, sources_bib)
         if ev.verified == "primary" and not any(s.kind == "primary" for s in sources):
             raise ContentError(f"{where}: verified = \"primary\" needs at least one source with kind = \"primary\"")
+        ev.further = _further(ev.further, where, terms)
+        _check_reading_links(ev, where)
 
         # Cross-references (related ids are checked once every id is known).
         claimed = set()

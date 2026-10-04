@@ -221,6 +221,8 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl__sources { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 1.55; overflow-wrap: anywhere; }
 .tl__sources cite, .tl-card__source cite { color: var(--fg); }
 .tl__sources .mono, .tl__checked { font-size: 12px; }
+.tl__read { font-size: clamp(17px, 1.32vw, 19px); }
+.tl-years { display: none; }
 
 /* The era axis over the timeline, and the phone fold of its filter chips. site.js builds both, so none of this
  * applies without JavaScript. --hit is the marker's hit area, which site.js reads; site.js sets --lanes. */
@@ -406,6 +408,8 @@ a.trow:hover .trow__name { color: var(--sky); }
 @media (max-width: 560px) {
   .tl__figure { float: none; margin: 0; }
   .tl article:has(> .tl__back) > .tl__figure { margin-bottom: 0; }
+  .tl-years { display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px var(--pad); border-top: 1px solid var(--line); }
+  .tl-years a { display: flex; align-items: center; justify-content: center; min-height: 44px; font: 500 13px var(--mono); letter-spacing: 0.1em; }
   .row > .inner, .row--tight > .inner, .row--tighter > .inner { padding-top: 56px; padding-bottom: 56px; }
   .grid--4 { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .cluster--stack { flex-direction: column; align-items: stretch; gap: 12px; }

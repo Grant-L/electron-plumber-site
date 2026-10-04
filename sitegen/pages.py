@@ -325,8 +325,24 @@ def _authors(names):
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
 
 
-def _citation(entry, src):
-    """One source line. The citation text comes from sources.bib; the timeline adds kind, locator, link and note."""
+def _reading_links(entry, src):
+    """A timeline entry's primary source: the original, by DOI or url, then a free full text if there is one."""
+    f = entry.fields
+    doi, url, links = src.doi or f.get("doi", ""), src.url or f.get("url", ""), []
+    if doi:
+        links.append(f'<a class="tl__read" href="https://doi.org/{esc(doi)}">Original paper</a> <span class="mono">doi:{esc(doi)}</span>')
+    elif url:
+        label = "Original letter" if f["title"].lower().startswith("letter ") else "Original"
+        links.append(f'<a class="tl__read" href="{esc(url)}">{label}</a>')
+    if src.fulltext_url:
+        cls = "" if links else ' class="tl__read"'
+        links.append(f'<a{cls} href="{esc(src.fulltext_url)}">Free full text</a>')
+    return " &middot; ".join(links)
+
+
+def _citation(entry, src, *, read=False):
+    """One source line. The citation text comes from sources.bib; the timeline adds kind, locator, link and note.
+    With read, the links are a timeline entry's reading links instead of the small DOI or url link."""
     f = entry.fields
     venue = next((f[k] for k in ("journal", "booktitle", "howpublished", "publisher", "institution", "school") if f.get(k)), "")
     where = venue + (f" {f['volume']}" if f.get("volume") else "") + (f" ({f['number']})" if f.get("number") else "")
@@ -338,7 +354,10 @@ def _citation(entry, src):
     title, rest = f["title"], ([_authors(entry.authors)] if entry.authors else []) + [where]
     text = f"<cite>{md.plain(title)}</cite>{stop(title)} " + " ".join(md.plain(p) + stop(p) for p in rest)
     doi, url = src.doi or f.get("doi", ""), src.url or f.get("url", "")
-    if doi:
+    if read:
+        links = _reading_links(entry, src)
+        text += f" {links}" if links else ""
+    elif doi:
         text += f' <a href="https://doi.org/{esc(doi)}" rel="noopener">doi:{esc(doi)}</a>'
     elif url:
         text += f' <a href="{esc(url)}" rel="noopener">{esc(url.removeprefix("https://"))}</a>'
@@ -411,6 +430,15 @@ def _history_filters(events):
             + f'<div class="mono" role="status" data-total="{total}" data-noun="{noun}">{total} {noun}</div></div></div>')
 
 
+HISTORY_YEARS_LABEL = "Jump to a year"
+
+
+def _history_years(events):
+    """Phones only (site.css hides it above 560px): one plain link per entry, by its year. Works without JavaScript."""
+    links = "".join(f'<a href="#{esc(ev.id)}">{ev.sort_key[0]}</a>' for ev in events)
+    return f'<nav class="tl-years" aria-label="{HISTORY_YEARS_LABEL}">{links}</nav>'
+
+
 def history(ctx: Ctx):
     title, description = PAGE_TEXT["history/"]
     events = list(ctx.timeline)
@@ -428,7 +456,10 @@ def history(ctx: Ctx):
         meta = " &middot; ".join([esc(f"{era_label}, {era_first}\u2013{era_last or 'present'}"), esc(content.CLASSES[ev.cls]),
                                   esc(", ".join(content.THREADS[t] for t in ev.thread)), content.VERIFIED[ev.verified]])
         people = f'<p class="mono tl__people">{esc(", ".join(ev.people))}</p>' if ev.people else ""
-        sources = "".join(_citation(s.entry, s) for s in ev.sources)
+        sources = "".join(_citation(s.entry, s, read=s.kind == "primary") for s in ev.sources)
+        further = ('<p class="small tl__further">Further reading: ' + "; ".join(
+            f'<a href="{esc(x.url)}">{md.plain(x.title)}</a> ({md.plain(x.publisher)})' for x in ev.further) + ".</p>"
+                   if ev.further else "")
         related = ('<p class="small tl__related">See also ' + ", ".join(f'<a href="#{esc(r)}">{md.plain(titles[r])}</a>' for r in ev.related)
                    + "</p>") if ev.related else ""
         oneliner = f' data-oneliner="{md.plain(ev.oneliner)}"' if ev.oneliner else ""
@@ -438,12 +469,12 @@ def history(ctx: Ctx):
                   f'<h3 class="h3 tl__title"><a href="#{esc(ev.id)}">{md.plain(ev.title)}</a></h3>'
                   f'<p class="mono tl__meta">{meta}</p>{_figure(ctx, ev.image)}'
                   f'<p class="small tl__summary">{md.plain(ev.summary)}</p>{people}'
-                  f'<ol class="tl__sources">{sources}</ol>'
+                  f'<ol class="tl__sources">{sources}</ol>{further}'
                   f'<p class="mono tl__checked">Checked {_time(ev.checked_date)}</p>'
                   f'{_episode_links(ctx, ev)}{related}</article></li>')
     timeline = row("Timeline", f'<ol class="timeline">{items}</ol>', "row--tight", heading=True)
     return page(ctx, title=title, active=title, description=description,
-                body=head + _history_filters(events) + timeline + subscribe(ctx))
+                body=head + _history_years(events) + _history_filters(events) + timeline + subscribe(ctx))
 
 
 # ------------------------------------------------------------------ RESEARCH
