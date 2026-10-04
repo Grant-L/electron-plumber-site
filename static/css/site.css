@@ -210,6 +210,48 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl__sources .mono { font-size: 12px; }
 .tl__checked { font-size: 12px; }
 
+/* The era axis over the timeline, and the phone fold of its filter chips. site.js builds both, so none of this
+ * applies without JavaScript. --hit is the marker's hit area, which site.js reads; site.js sets --lanes. */
+.tl-axis { --hit: 24px; border-top: 1px solid var(--line); }
+.tl-axis .inner { position: relative; padding-top: 16px; padding-bottom: 16px; }
+.tl-axis [hidden], .tl-axis__filter { display: none; }
+.tl-axis__bands { display: flex; }
+.tl-axis__band { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 4px 8px; background: rgba(86, 180, 233, 0.07); border: 0; border-bottom: 2px solid transparent; color: var(--body); font: 12px/1.35 var(--mono); text-align: left; cursor: pointer; }
+.tl-axis__zone { position: absolute; top: 0; height: calc(var(--lanes) * var(--hit)); background: rgba(86, 180, 233, 0.07); }
+.tl-axis__band:nth-child(even), .tl-axis__zone--alt { background: rgba(86, 180, 233, 0.14); }
+.tl-axis__band:hover, .tl-axis__band[aria-pressed="true"] { color: var(--fg); }
+.tl-axis__band[aria-pressed="true"] { border-bottom-color: var(--sky); }
+.tl-axis__label, .tl-axis__full { display: block; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.tl-axis__full { flex: none; padding: 4px 16px; }
+.tl-axis__years, .tl-axis__count { color: var(--muted); }
+.tl-axis__count::before { content: " \00b7\0020"; }
+.tl-axis__scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+.tl-axis__track { position: relative; min-width: 100%; height: calc(var(--lanes) * var(--hit) + 26px); }
+.tl-axis__tick { position: absolute; top: calc(var(--lanes) * var(--hit)); padding-top: 8px; transform: translateX(-50%); font: 11px/1 var(--mono); color: var(--muted); }
+.tl-axis__tick::before { content: ""; position: absolute; left: 50%; top: 0; width: 1px; height: 5px; background: var(--field); }
+.tl-axis__dot { position: absolute; z-index: 1; display: flex; align-items: center; justify-content: center; width: var(--hit); height: var(--hit); margin-left: calc(var(--hit) / -2); padding: 0; background: none; border: 0; color: var(--sky); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tl-axis__dot::before { content: ""; width: 10px; height: 10px; border: 2px solid currentColor; border-radius: 50%; background: currentColor; }
+.tl-axis__dot:hover, .tl-axis__dot:focus-visible, .tl-axis__dot[aria-current] { color: var(--fg); outline-offset: -2px; }
+.tl-axis__dot[aria-current]::before { width: 14px; height: 14px; background: var(--bg); }
+.tl-axis__more { width: auto; min-width: var(--hit); padding: 0 6px; border: 1px solid currentColor; border-radius: 12px; font: 11px var(--mono); }
+.tl-axis__more::before { content: none; }
+.tl-axis__tip { position: absolute; z-index: 2; max-width: min(320px, 80%); padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-left: 2px solid var(--sky); color: var(--fg); font: 15px/1.4 var(--serif); pointer-events: none; }
+.tl-axis__tip::after { content: ""; position: absolute; left: var(--x); top: 100%; margin-left: -6px; border: 6px solid transparent; border-top-color: var(--sky); }
+.tl-axis__tip--below::after { top: auto; bottom: 100%; border-color: transparent transparent var(--sky); }
+.tl-axis__tip b { display: block; color: var(--sky); font: 12px var(--mono); }
+.tl--current > article { max-width: 778px; margin-left: -18px; padding-left: 16px; border-left: 2px solid var(--sky); }
+@media (pointer: coarse) {
+  .tl-axis { --hit: 44px; }
+}
+@media (max-width: 560px) {
+  .tl-axis__filter { display: flex; }
+  .tl-axis__filter[aria-expanded="true"] { color: var(--fg); border-bottom-color: var(--sky); }
+  .tl-axis__filter[aria-expanded="false"] ~ .filter__chips { display: none; }
+}
+@media print, (max-width: 560px) {
+  .tl-axis { display: none; }
+}
+
 /* ------------------------------------------------------------ episode post */
 .post-head { width: min(960px, 100% - 2 * var(--pad)); margin: 0 auto; padding: 56px 0 48px; display: flex; flex-direction: column; }
 .post-video { width: min(960px, 100% - 2 * var(--pad)); margin: 0 auto 64px; }
@@ -252,6 +294,8 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .trow__text { flex: 1; min-width: 0; font-size: clamp(16px, 1.25vw, 18px); line-height: 1.6; }
 .trow__kind { width: 130px; flex-shrink: 0; text-align: right; font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sky); }
 a.trow:hover .trow__name { color: var(--sky); }
+.start-steps { list-style: none; padding: 0; }
+.start-steps .trow { align-items: flex-start; }
 .claim { padding: 24px 28px; background: var(--panel); border: 1px solid var(--line); font-family: var(--mono); font-size: 15px; line-height: 24px; color: var(--fg); overflow-wrap: anywhere; }
 .claim b { font-weight: 400; color: var(--orange); }
 .claim i { font-style: normal; color: var(--muted); }

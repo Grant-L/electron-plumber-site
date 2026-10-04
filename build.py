@@ -29,6 +29,7 @@ def build(out: Path, drafts: bool = False, root: Path = ROOT):
     content.validate_episode_sources(root, episodes)
     errata = content.load_errata(root, episodes)
     content.link_episodes(episodes, timeline, errata)
+    start = content.load_start(root, episodes)
     site["_root"] = str(root)
 
     if out.exists():
@@ -46,11 +47,12 @@ def build(out: Path, drafts: bool = False, root: Path = ROOT):
             written.append(path)
 
     def ctx(path, **kw):
-        return Ctx(site, episodes, path, version, timeline=timeline, errata=errata, **kw)
+        return Ctx(site, episodes, path, version, timeline=timeline, errata=errata, start=start, **kw)
 
     write("index.html", pages.home(ctx("")))
     write("episodes/index.html", pages.episodes(ctx("episodes/")))
     write("history/index.html", pages.history(ctx("history/")))
+    write("start/index.html", pages.start(ctx("start/")))
     write("research/index.html", pages.research(ctx("research/")))
     write(f"{RECORDS[1]}index.html", pages.records(ctx(RECORDS[1])))
     write("about/index.html", pages.about(ctx("about/")))
