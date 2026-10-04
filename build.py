@@ -25,6 +25,7 @@ def build(out: Path, drafts: bool = False, root: Path = ROOT):
         raise SystemExit(f"refusing to delete {out}: it is not a previous build (no .nojekyll marker)")
 
     site, episodes = content.load(root, drafts=drafts)
+    research = content.load_research(root)
     timeline = content.load_timeline(root, episodes)
     content.validate_episode_sources(root, episodes)
     errata = content.load_errata(root, episodes)
@@ -47,7 +48,7 @@ def build(out: Path, drafts: bool = False, root: Path = ROOT):
             written.append(path)
 
     def ctx(path, **kw):
-        return Ctx(site, episodes, path, version, timeline=timeline, errata=errata, start=start, **kw)
+        return Ctx(site, episodes, path, version, timeline=timeline, errata=errata, start=start, research=research, **kw)
 
     write("index.html", pages.home(ctx("")))
     write("episodes/index.html", pages.episodes(ctx("episodes/")))

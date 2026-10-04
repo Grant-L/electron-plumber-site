@@ -408,15 +408,19 @@ RESEARCH_DESCRIPTION = ("Applied Vacuum Engineering: a falsifiable impedance mod
                         "with its kill criteria stated up front.")
 
 
+FALSIFIER_KICKERS = {"excluded": "Excluded by data", "armed": "Armed &middot; pre-registered"}
+
+
 def research(ctx: Ctx):
-    core = ctx.site["core_repo"]
+    core, counts = ctx.site["core_repo"], ctx.research
+    armed = counts.armed
     letter = core + "/blob/main/papers/2026_birefringence_letter/sve_vacuum_birefringence_letter.pdf"
     head = (f'<div class="page-head" style="padding-top: 80px; padding-bottom: 72px;"><div class="notice">{badge("speculative")}'
             f'<div class="mono mono--body">Explicit speculation.</div></div>'
             f'<h1 class="h1 g28">Applied Vacuum Engineering</h1>'
             f'<p class="deck g16" style="font-size: clamp(19px, 1.8vw, 26px);">A falsifiable impedance model of the vacuum.</p>'
-            f'<div class="mono g28">Apache-2.0 &nbsp;&middot;&nbsp; 1 armed forward falsifier &nbsp;&middot;&nbsp; '
-            f'44 consistency-class entries</div></div>')
+            f'<div class="mono g28">Apache-2.0 &nbsp;&middot;&nbsp; {armed} armed forward falsifier{"s" if armed != 1 else ""} '
+            f'&nbsp;&middot;&nbsp; {counts.consistency_entries} consistency-class entries</div></div>')
 
     wager = row("The wager", (
         '<p class="prose prose--lg">Applied Vacuum Engineering is a falsification-first <em>engineering</em> model of the vacuum. '
@@ -427,25 +431,34 @@ def research(ctx: Ctx):
         'stress in one medium, is the correct disciplinary frame. The point of the work is to find out where that wager breaks.</p>'),
         "row--tight")
 
-    def fcard(color, status, title, text, link_text, href, mod):
+    cards = []
+
+    def fcard(fid, color, title, text, link_text, href, mod):
+        cards.append(fid)
+        if fid not in counts.falsifiers:
+            raise content.ContentError(f"research.toml: no [[falsifier]] with id {fid!r} for the Research page's card")
+        status = FALSIFIER_KICKERS[counts.falsifiers[fid]]
         return (f'<div class="fcard" style="--c: var(--{color});"><div class="fcard__top"></div><div class="fcard__body">'
                 f'{kicker(status, "kicker--" + color)}<h3 class="h3 g16">{title}</h3><p class="small g16">{text}</p>'
                 f'{arrow(link_text, href, mod, external=True)}</div></div>')
 
     die = row("Experimental falsification", (
         '<h2 class="h2">What kills the framework.</h2><div class="grid grid--2 g40">'
-        + fcard("vermillion", "Excluded by data", "The electrostatic gauntlet",
+        + fcard("electrostatic-gauntlet", "vermillion", "The electrostatic gauntlet",
                 "The framework put its own continuum static-field law on trial against muonic hydrogen, the sharpest available "
                 "probe of the atom&rsquo;s near-nucleus field. The law lost. Extrapolated into the atom&rsquo;s static sector, it "
                 "overshoots the measured Lamb-shift window, 202.3706(23) meV, by about 2&times;10<sup>4</sup>. A completed "
                 "falsification, banked on the record.", "Read the adjudication", core + "#experimental-falsification", "arrow--vermillion")
-        + fcard("orange", "Armed &middot; pre-registered", "Vacuum birefringence",
+        + fcard("vacuum-birefringence", "orange", "Vacuum birefringence",
                 "A tree-level X-ray vacuum birefringence, a field-independent factor 3.75&pi;/&alpha;<sup>2</sup> &asymp; "
                 "2.2&times;10<sup>5</sup> above one-loop QED. The kill criterion was committed before any data and timestamped on "
                 "the Bitcoin blockchain: a 5&sigma; pump-on null, P<sub>flip</sub> &lt; 10<sup>&minus;8</sup> at a pump intensity of "
                 "10<sup>18</sup> W/cm<sup>2</sup> or more, falsifies the model&rsquo;s electric sector. No rescue.",
                 "Read the Letter (PDF)", letter, "arrow--orange")
         + '</div>'), "row--tight")
+    extra = [fid for fid in counts.falsifiers if fid not in cards]
+    if extra:
+        raise content.ContentError(f"research.toml: falsifier {extra[0]!r} has no card on the Research page")
 
     def axiom(n, name, text):
         return f'<div class="trow"><div class="trow__n">{n}</div><div class="trow__name">{name}</div><div class="trow__text">{text}</div></div>'

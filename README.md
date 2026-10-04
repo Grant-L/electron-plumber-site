@@ -21,6 +21,7 @@ make test       # unit tests (pytest)
 | `content/timeline.toml` | The History page's events, one `[[event]]` each. **Generated** by `tools/export_timeline.py` from the Historian's confirmed, public entries; never edited by hand. A missing file means an empty timeline. |
 | `content/sources.bib` | A verbatim copy of the notes repo's `sources.bib`, with one header line naming the notes commit it was copied from. Every timeline and episode source key must be in it. |
 | `content/errata.md` | A verbatim copy of the notes repo's `ERRATA.md`, with one header comment naming the notes commit it was copied from: the same commit as `content/sources.bib`. Its entries become the corrections-ledger rows on each episode page. |
+| `content/research.toml` | The counts on the Research page: armed forward falsifiers and consistency-class entries, with the AVE-Core commit (`pin`) and the date (`checked`) they were read at. Checked by hand against that commit; each `[[falsifier]]` must match a card on the page, and its `status` sets the card's kicker. |
 | `sitegen/` | Templates (`pages.py`), shared components (`html.py`), content loading and rules (`content.py`), a small Markdown subset (`md.py`), a small BibTeX subset (`bib.py`). |
 | `tools/` | `export_timeline.py`: the public-safe export from the Historian's confirmations into `content/timeline.toml` (`--check` exits 1 if the file would change). |
 | `static/` | CSS, the one script, images, favicons. Copied to the site root as is. |
