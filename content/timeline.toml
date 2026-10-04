@@ -30,6 +30,18 @@ checked_date = "2026-10-02"
   [[event.source]]
   key = "hamilton1865letter"
   kind = "primary"
+  url = "https://www.maths.tcd.ie/pub/HistMath/People/Hamilton/Letters/BroomeBridge.html"
+  fulltext_url = "https://archive.org/details/lifeofsirwilliam02gravuoft/page/434/mode/1up"
+
+  [[event.further]]
+  title = "Hamilton's Research on Quaternions"
+  publisher = "Trinity College Dublin"
+  url = "https://www.maths.tcd.ie/pub/HistMath/People/Hamilton/Quaternions.html"
+
+  [[event.further]]
+  title = "William Rowan Hamilton"
+  publisher = "MacTutor, University of St Andrews"
+  url = "https://mathshistory.st-andrews.ac.uk/Biographies/Hamilton/"
 
 [[event]]
 id = "1867-kelvin-vortex-atoms"
@@ -61,6 +73,12 @@ checked_date = "2026-10-03"
   key = "kelvin1867vortex"
   kind = "primary"
   locator = "no. 73"
+  fulltext_url = "https://archive.org/details/per_proceedings-of-the-royal-society-of-edinburgh_proceedings-of-the-royal-socie_1866-1867_6_73/page/94/mode/1up"
+
+  [[event.further]]
+  title = "William Thomson"
+  publisher = "MacTutor, University of St Andrews"
+  url = "https://mathshistory.st-andrews.ac.uk/Biographies/Thomson/"
 
 [[event]]
 id = "1887-michelson-morley"
@@ -92,6 +110,17 @@ checked_date = "2026-10-03"
   key = "michelson1887ether"
   kind = "primary"
   doi = "10.2475/ajs.s3-34.203.333"
+  fulltext_url = "https://ajsonline.org/article/62505-on-the-relative-motion-of-the-earth-and-the-luminiferous-ether.pdf"
+
+  [[event.further]]
+  title = "November 1887: Michelson and Morley report their failure to detect the luminiferous ether"
+  publisher = "APS News"
+  url = "https://www.aps.org/apsnews/2007/11/november-1887-michelson-uminiferous-ether"
+
+  [[event.further]]
+  title = "Albert Abraham Michelson 1852–1931"
+  publisher = "American Institute of Physics"
+  url = "https://history.aip.org/exhibits/gap/Michelson/Michelson.html"
 
 [[event]]
 id = "1905-einstein-electrodynamics"
@@ -123,6 +152,17 @@ checked_date = "2026-10-03"
   key = "einstein1905elektrodynamik"
   kind = "primary"
   doi = "10.1002/andp.19053221004"
+  fulltext_url = "https://archive.org/details/sim_annalen-der-physik_1905_17_5/page/891/mode/1up"
+
+  [[event.further]]
+  title = "Einstein's Discovery of Relativity"
+  publisher = "American Institute of Physics"
+  url = "https://history.aip.org/exhibits/einstein/essay-einstein-relativity.htm"
+
+  [[event.further]]
+  title = "Einstein: Image and Impact"
+  publisher = "American Institute of Physics"
+  url = "https://history.aip.org/exhibits/einstein/"
 
 [[event]]
 id = "1928-dirac-equation"
@@ -154,6 +194,16 @@ checked_date = "2026-10-03"
   kind = "primary"
   doi = "10.1098/rspa.1928.0023"
 
+  [[event.further]]
+  title = "January 1928: The Dirac equation unifies quantum mechanics and special relativity"
+  publisher = "APS News"
+  url = "https://www.aps.org/apsnews/2024/11/mathematical-intuition-dirac-quantum-mechanics"
+
+  [[event.further]]
+  title = "\"Theory of Electrons and Positrons\", Nobel Lecture 1933"
+  publisher = "Nobel Prize"
+  url = "https://www.nobelprize.org/prizes/physics/1933/dirac/lecture/"
+
 [[event]]
 id = "1948-schwinger-moment"
 date = "1948-02-15"
@@ -183,6 +233,17 @@ checked_date = "2026-10-03"
   key = "schwinger1948moment"
   kind = "primary"
   doi = "10.1103/PhysRev.73.416"
+  fulltext_url = "https://journals.aps.org/pr/pdf/10.1103/PhysRev.73.416"
+
+  [[event.further]]
+  title = "\"Relativistic Quantum Field Theory\", Nobel Lecture 1965"
+  publisher = "Nobel Prize"
+  url = "https://www.nobelprize.org/prizes/physics/1965/schwinger/lecture/"
+
+  [[event.further]]
+  title = "Julian Schwinger"
+  publisher = "MacTutor, University of St Andrews"
+  url = "https://mathshistory.st-andrews.ac.uk/Biographies/Schwinger/"
 
 [[event]]
 id = "2008-hanneke-electron-moment"
@@ -213,6 +274,12 @@ checked_date = "2026-10-03"
   key = "hanneke2008electron"
   kind = "primary"
   doi = "10.1103/PhysRevLett.100.120801"
+  fulltext_url = "https://arxiv.org/abs/0801.1134"
+
+  [[event.further]]
+  title = "Searching for New Physics with the Electron's Magnetic Moment"
+  publisher = "APS Physics"
+  url = "https://physics.aps.org/articles/v16/22"
 
 [[event]]
 id = "2023-fan-electron-moment"
@@ -243,3 +310,9 @@ checked_date = "2026-10-03"
   key = "fan2023electron"
   kind = "primary"
   doi = "10.1103/PhysRevLett.130.071801"
+  fulltext_url = "https://arxiv.org/abs/2209.13084"
+
+  [[event.further]]
+  title = "Searching for New Physics with the Electron's Magnetic Moment"
+  publisher = "APS Physics"
+  url = "https://physics.aps.org/articles/v16/22"

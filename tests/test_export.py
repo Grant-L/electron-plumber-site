@@ -276,6 +276,88 @@ def test_markup_characters_in_titles_and_summaries_block_the_export(files, key, 
     assert not files.out.exists()
 
 
+# ------------------------------------------------------------------ reading links and their link-check gate
+FULLTEXT = "https://archive.org/details/fixture/page/1/mode/1up"
+LINK_GATE = 'links_checked_by = "Fixture checker"\nlinks_checked_date = "2026-10-04"'
+FURTHER = ('\n  [[confirmed.further]]\n  title = "William Rowan Hamilton"\n  publisher = "MacTutor, University of St Andrews"\n'
+           '  url = "https://mathshistory.st-andrews.ac.uk/Biographies/Hamilton/"\n')
+
+
+def with_fulltext(text):
+    return text.replace('kind = "primary"', f'kind = "primary"\n  fulltext_url = "{FULLTEXT}"')
+
+
+@pytest.mark.parametrize("build", [with_fulltext, lambda t: t + FURTHER, lambda t: with_fulltext(t) + FURTHER])
+def test_reading_links_need_the_link_check(files, build):
+    with pytest.raises(SystemExit, match="links not checked"):
+        files(build(entry()))
+    with pytest.raises(SystemExit, match="links not checked"):
+        files(build(entry(extra='links_checked_by = "Fixture checker"\nlinks_checked_date = "not a date"')))
+    assert not files.out.exists()
+
+
+def test_reading_links_cross_after_the_sources_and_the_gate_does_not(files):
+    files(with_fulltext(entry(extra=LINK_GATE)) + FURTHER)
+    text = files.out.read_text(encoding="utf-8")
+    assert "links_checked" not in text and "Fixture checker" not in text
+    assert text.endswith('  [[event.source]]\n  key = "hamilton1865letter"\n  kind = "primary"\n'
+                         f'  fulltext_url = "{FULLTEXT}"\n\n  [[event.further]]\n  title = "William Rowan Hamilton"\n'
+                         '  publisher = "MacTutor, University of St Andrews"\n'
+                         '  url = "https://mathshistory.st-andrews.ac.uk/Biographies/Hamilton/"\n')
+    [ev] = events(files.out)
+    assert ev["source"][0]["fulltext_url"] == FULLTEXT and len(ev["further"]) == 1
+
+
+def test_an_entry_without_reading_links_needs_no_link_check(files):
+    files(entry())
+    assert "further" not in files.out.read_text(encoding="utf-8")
+
+
+def test_an_unknown_further_key_is_an_error(files):
+    with pytest.raises(SystemExit, match="further: unknown field 'note'"):
+        files(entry(extra=LINK_GATE) + FURTHER + '  note = "x"\n')
+
+
+def test_a_further_link_that_fails_load_timeline_is_not_written(files):
+    with pytest.raises(SystemExit, match="does not pass load_timeline.*not in FURTHER_HOSTS"):
+        files(entry(extra=LINK_GATE) + FURTHER.replace("mathshistory.st-andrews.ac.uk", "example.org"))
+    assert not files.out.exists()
+
+
+def confirmations_for(timeline):
+    """[[confirmed]] records that carry exactly the events of a timeline.toml, with every gate passed."""
+    out = []
+    for n, ev in enumerate(tomllib.loads(timeline)["event"], 1):
+        lines = ["[[confirmed]]", f'link = "HL-{n:03d}"', 'historian = "confirmed"', "public = true"]
+        if ev.get("further") or any("fulltext_url" in s for s in ev["source"]):
+            lines.append(LINK_GATE)
+        lines += [f"{k} = {ex._value(v, k)}" for k, v in ev.items() if k not in ("source", "further", "image")]
+        if "image" in ev:
+            lines += ["[confirmed.image]", 'image_checked_by = "Fixture checker"', 'image_checked_date = "2026-10-04"']
+            lines += [f"{k} = {ex._value(v, k)}" for k, v in ev["image"].items()]
+        for table, rows in (("source", ev["source"]), ("further", ev.get("further", []))):
+            for row in rows:
+                lines += [f"[[confirmed.{table}]]"] + [f"{k} = {ex._value(v, k)}" for k, v in row.items()]
+        out.append("\n".join(lines) + "\n")
+    return "\n".join(out)
+
+
+def test_the_committed_timeline_is_exactly_what_the_exporter_writes(tmp_path):
+    committed = ROOT / "content" / "timeline.toml"
+    timeline = committed.read_text(encoding="utf-8")
+    assert "[[event.further]]" in timeline and "fulltext_url" in timeline
+    tracker = tmp_path / "tracker"
+    tracker.mkdir()
+    count = len(tomllib.loads(timeline)["event"])
+    (tracker / "HISTORY-LINKS.md").write_text("| ID | Name |\n|---|---|\n" + "".join(f"| HL-{n:03d} | x |\n" for n in range(1, count + 1)),
+                                              encoding="utf-8")
+    (tracker / "HISTORY-CONFIRMED.toml").write_text(confirmations_for(timeline), encoding="utf-8")
+    out = tmp_path / "timeline.toml"
+    assert ex.export(tracker / "HISTORY-CONFIRMED.toml", tracker / "HISTORY-LINKS.md", out) == 0
+    assert out.read_bytes() == committed.read_bytes()
+    assert ex.export(tracker / "HISTORY-CONFIRMED.toml", tracker / "HISTORY-LINKS.md", committed, check_only=True) == 0
+
+
 def test_the_plain_text_check_covers_title_and_summary_only(files):
     files(entry(extra='oneliner = "A snake_case name stays as written."'))
     assert events(files.out)[0]["oneliner"] == "A snake_case name stays as written."
