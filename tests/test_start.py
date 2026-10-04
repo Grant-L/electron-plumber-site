@@ -58,7 +58,8 @@ def test_before_anything_is_published_step_one_is_the_question_and_deck():
     if any(e.live for e in episodes):
         pytest.skip("an episode is published; the published state is tested with a fixture")
     first, _, third = _steps(_render(episodes))
-    assert re.search(r'<h2 class="h3">(.*?)</h2>', first).group(1) == "What is an Electron?"
+    assert re.search(r'<h2 class="h3">(.*?)</h2>', first).group(1) == (
+        '<a href="https://www.youtube.com/@TheElectronPlumber?sub_confirmation=1" rel="noopener">What is an Electron?</a>')
     assert pages.DECK in first and "Episode 001 is in production" in first and "episodes/001" not in first
     assert '<hr class="rule rule--line g40">' in third and "Next &middot; Episode 001" in third
 
@@ -69,6 +70,43 @@ def test_once_published_step_one_links_the_episode_and_step_three_offers_it():
     assert "An excerpt." in first and "badge--historical" in first and "in production" not in first
     assert pages.DECK not in first
     assert "<span>Watch Episode 001</span>" in third and 'href="../episodes/001-x/"' in third
+
+
+def _step_one_link(html):
+    return re.search(r'<h2 class="h3"><a href="([^"]*)"[^>]*>(.*?)</a></h2>', _steps(html)[0]).groups()
+
+
+def test_step_one_links_subscribe_while_episode_one_is_in_production(content_root):
+    (content_root / "content" / "episodes.toml").write_text(
+        '[[episode]]\nnumber = 1\nslug = "001-x"\ntitle = "X"\nstatus = "in-production"\n', encoding="utf-8")
+    site, episodes = content.load(content_root)
+    site["_root"] = str(content_root)
+    ctx = Ctx(site, episodes, "start/", "v", start=content.load_start(content_root, episodes))
+    html = pages.start(ctx)
+    assert _step_one_link(html) == (ctx.sub_url, "X")
+    assert ctx.sub_url == site["youtube"] + "?sub_confirmation=1"
+    assert "episodes/001-x" not in html
+
+
+def test_step_one_links_episode_one_once_its_status_is_published(tmp_path, published_root):
+    build.build(tmp_path / "site", root=published_root)
+    html = (tmp_path / "site" / "start" / "index.html").read_text(encoding="utf-8")
+    assert _step_one_link(html) == ("../episodes/001-x/", "X")
+    assert "sub_confirmation" not in _steps(html)[0]
+    assert check.check(tmp_path / "site") == []
+
+
+def test_the_real_data_decides_step_ones_link(tmp_path):
+    _, episodes = content.load(ROOT)
+    ep1 = next(e for e in episodes if e.number == 1)
+    build.build(tmp_path / "site")
+    href, text = _step_one_link((tmp_path / "site" / "start" / "index.html").read_text(encoding="utf-8"))
+    assert text == "What is an Electron?"
+    if ep1.live:
+        assert href == f"../{ep1.url}"
+    else:
+        assert ep1.status == "in-production"
+        assert href == "https://www.youtube.com/@TheElectronPlumber?sub_confirmation=1"
 
 
 def test_route_steps_use_the_target_pages_own_title_and_description(tmp_path):
