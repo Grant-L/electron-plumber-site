@@ -240,10 +240,27 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl-axis__tip--below::after { top: auto; bottom: 100%; border-color: transparent transparent var(--sky); }
 .tl-axis__tip b { display: block; color: var(--sky); font: 12px var(--mono); }
 .tl--current > article { max-width: 778px; margin-left: -18px; padding-left: 16px; border-left: 2px solid var(--sky); }
+/* The preview card: under the track, centred on its dot; no animation, it simply appears. */
+.tl-card { position: absolute; z-index: 3; width: min(22rem, calc(100% - 16px)); padding: 12px 16px 16px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--sky); }
+.tl-card::before { content: ""; position: absolute; left: var(--x); bottom: 100%; margin-left: -6px; border: 6px solid transparent; border-bottom-color: var(--sky); }
+.tl-card--far::before { content: none; }
+.tl-card__head { display: flow-root; }
+.tl-card__date { color: var(--sky); font-size: 12px; }
+.tl-card__close { float: right; min-width: 44px; min-height: 44px; margin: -12px -12px 0 8px; padding: 0 8px; background: none; border: 0; color: var(--body); font: 500 12px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+.tl-card__close:hover, .tl-card__read:hover { color: var(--fg); }
+.tl-card__title { margin-top: 4px; color: var(--fg); font: 600 18px/1.35 var(--serif); }
+.tl-card__line { margin-top: 8px; color: var(--body); }
+.tl-card__source { margin-top: 8px; font-size: 12px; overflow-wrap: anywhere; }
+.tl-card__source cite { color: var(--fg); }
+.tl-card__read { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 4px; color: var(--sky); font: 500 13px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; }
+.tl__back { display: inline-flex; margin-top: 16px; }
 @media (pointer: coarse) {
   .tl-axis { --hit: 44px; }
 }
 @media (max-width: 560px) {
+  .tl-card { position: static; width: auto; margin-top: 8px; }
+  .tl-card::before { content: none; }
+  .tl-card__read { display: flex; }
   .tl-axis__filter { display: flex; }
   .tl-axis__filter[aria-expanded="true"] { color: var(--fg); border-bottom-color: var(--sky); }
   .tl-axis__filter[aria-expanded="false"] ~ .filter__chips { display: none; }
@@ -386,7 +403,7 @@ a.trow:hover .trow__name { color: var(--sky); }
 }
 @media print {
   :root { --bg: #fff; --panel: #fff; --plate: #fff; --fg: #000; --body: #111; --muted: #444; --line: #bbb; --sky: #0b5a85; --orange: #7a5200; --green: #00664a; --vermillion: #9a4300; }
-  .site-header, .site-footer, .band, .nav-toggle, .card__play, .filter, body[data-arc]::before { display: none; }
+  .site-header, .site-footer, .band, .nav-toggle, .card__play, .filter, .tl__back, body[data-arc]::before { display: none; }
   .btn { background: transparent; color: var(--orange); }
   .card--dim .card__in { opacity: 1; }
 }
