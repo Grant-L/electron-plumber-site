@@ -71,6 +71,60 @@ def test_once_published_step_one_links_the_episode_and_step_three_offers_it():
     assert "<span>Watch Episode 001</span>" in third and 'href="../episodes/001-x/"' in third
 
 
+SOON = "Episode 1 is coming soon. Subscribe to get it first."
+
+
+def _soon_lines(step):
+    return [p for p in re.findall(r'<p class="small g12">(.*?)</p>', step) if "coming soon" in p]
+
+
+def _header_subscribe(html):
+    return re.search(r'<a class="btn btn--sm" href="([^"]*)"( rel="[^"]*")?>Subscribe</a>', html).groups()
+
+
+def test_while_episode_one_is_in_production_step_one_offers_subscribe(content_root):
+    (content_root / "content" / "episodes.toml").write_text(
+        '[[episode]]\nnumber = 1\nslug = "001-x"\ntitle = "X"\nstatus = "in-production"\n', encoding="utf-8")
+    site, episodes = content.load(content_root)
+    site["_root"] = str(content_root)
+    ctx = Ctx(site, episodes, "start/", "v", start=content.load_start(content_root, episodes))
+    html = pages.start(ctx)
+    first = _steps(html)[0]
+    assert re.search(r'<h2 class="h3">(.*?)</h2>', first).group(1) == "X"
+    assert pages.DECK in first and "Episode 001 is in production" in first
+    href, rel = _header_subscribe(html)
+    assert href == ctx.sub_url
+    [line] = _soon_lines(first)
+    assert line == f'Episode 1 is coming soon. <a href="{ctx.sub_url}"{rel}>Subscribe</a> to get it first.'
+    assert re.sub(r"<[^>]+>", "", line) == SOON and SOON.isascii()
+    assert "target=" not in line
+    assert "episodes/001-x" not in html
+
+
+def test_once_episode_one_is_published_the_line_goes_and_the_heading_links_it(tmp_path, published_root):
+    build.build(tmp_path / "site", root=published_root)
+    first = _steps((tmp_path / "site" / "start" / "index.html").read_text(encoding="utf-8"))[0]
+    assert re.search(r'<h2 class="h3">(.*?)</h2>', first).group(1) == '<a href="../episodes/001-x/">X</a>'
+    assert _soon_lines(first) == [] and "coming soon" not in first and "sub_confirmation" not in first
+    assert check.check(tmp_path / "site") == []
+
+
+def test_the_real_data_decides_step_one(tmp_path):
+    site, episodes = content.load(ROOT)
+    ep1 = next(e for e in episodes if e.number == 1)
+    sub_url = Ctx(site, episodes, "start/", "v").sub_url
+    build.build(tmp_path / "site")
+    first = _steps((tmp_path / "site" / "start" / "index.html").read_text(encoding="utf-8"))[0]
+    heading = re.search(r'<h2 class="h3">(.*?)</h2>', first).group(1)
+    if ep1.live:
+        assert heading == f'<a href="../{ep1.url}">What is an Electron?</a>'
+        assert _soon_lines(first) == []
+    else:
+        assert ep1.status == "in-production"
+        assert heading == "What is an Electron?"
+        assert _soon_lines(first) == [f'Episode 1 is coming soon. <a href="{sub_url}" rel="noopener">Subscribe</a> to get it first.']
+
+
 def test_route_steps_use_the_target_pages_own_title_and_description(tmp_path):
     build.build(tmp_path / "site")
     html = (tmp_path / "site" / "start" / "index.html").read_text(encoding="utf-8")
