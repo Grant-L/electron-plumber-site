@@ -7,6 +7,8 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from check import ACRONYM, PLACEHOLDER
+
 from . import bib, md
 
 ARCS = {"historical": "Historical", "speculative": "Speculative", "practical": "Practical"}
@@ -255,6 +257,7 @@ class Event:
     checked_by: str
     checked_date: str
     date: str = ""
+    oneliner: str = ""  # the preview card's line; site.js reads it from data-oneliner
     date_basis: str = "event"
     end: str = ""
     circa: bool = False
@@ -441,6 +444,21 @@ def load_timeline(root: Path, episodes, today=None):
             raise ContentError(f"{where}: summary must be 1 to 600 characters")
         if MD_LINK.search(ev.summary):
             raise ContentError(f"{where}: summary must not contain links")
+        if "oneliner" in item:
+            line = ev.oneliner
+            if not isinstance(line, str) or not line.strip() or set(line) & set("\n\r<>"):
+                raise ContentError(f"{where}: oneliner must be one line of plain text")
+            ev.oneliner = line = line.strip()
+            if len(line) > 140:
+                raise ContentError(f"{where}: oneliner is longer than 140 characters ({len(line)})")
+            if not line.endswith((".", "?", "!")):
+                raise ContentError(f"{where}: oneliner must end with . ? or !")
+            if line == ev.title.strip():
+                raise ContentError(f"{where}: oneliner must not repeat the title")
+            if ACRONYM.search(line):
+                raise ContentError(f"{where}: oneliner must spell out the framework's name (three-letter acronym found)")
+            if PLACEHOLDER.search(line):
+                raise ContentError(f"{where}: oneliner has a capitalised bracket placeholder (write [sic] in lowercase)")
         _strings(ev.people, where, "people")
 
         # Vocabularies.
