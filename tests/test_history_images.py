@@ -314,7 +314,7 @@ def test_the_axis_and_the_card_never_show_an_image():
 
 def test_the_figure_css_is_160px_floated_and_unfloated_at_560px():
     css = (ROOT / "static" / "css" / "site.css").read_text(encoding="utf-8")
-    assert ".tl__figure { float: right; width: 160px; margin-left: 1rem; }" in css
+    assert ".tl__figure { float: right; width: 160px; margin: 0 0 10px 1rem; }" in css
     phone = css[css.rindex("@media (max-width: 560px) {"):]
     assert ".tl__figure { float: none; margin: 0; }" in phone[:phone.index("}\n}")]
     assert "img { height: auto; }" in css

@@ -205,9 +205,9 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl__date abbr { text-decoration: none; }
 .tl__title a { color: inherit; text-decoration: none; }
 .tl__summary, .tl__people { color: var(--body); }
-.tl__figure { float: right; width: 160px; margin-left: 1rem; }
+.tl__figure { float: right; width: 160px; margin: 0 0 10px 1rem; }
 .tl__sources { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 1.55; overflow-wrap: anywhere; }
-.tl__sources cite { color: var(--fg); }
+.tl__sources cite, .tl-card__source cite { color: var(--fg); }
 .tl__sources .mono, .tl__checked { font-size: 12px; }
 
 /* The era axis over the timeline, and the phone fold of its filter chips. site.js builds both, so none of this
@@ -251,9 +251,8 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl-card__title { margin-top: 4px; color: var(--fg); font: 600 18px/1.35 var(--serif); }
 .tl-card__line { margin-top: 8px; color: var(--body); }
 .tl-card__source { margin-top: 8px; font-size: 12px; overflow-wrap: anywhere; }
-.tl-card__source cite { color: var(--fg); }
 .tl-card__read { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 4px; color: var(--sky); font: 500 13px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; }
-.tl__back { display: flex; margin-top: 26px; }
+.tl__back { display: flex; width: 100%; margin-top: 26px; }
 @media (pointer: coarse) {
   .tl-axis { --hit: 44px; }
 }
