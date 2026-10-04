@@ -6,12 +6,12 @@ from .html import RECORDS, Ctx, arrow, badge, btn, card, esc, kicker, mono, page
 
 DECK = "We know what it <em>does</em> to a part in a trillion. Nobody knows what it <em>is</em>."
 QUOTE_AUTHOR = ("&ldquo;I&rsquo;m an EE who calls myself an electron plumber. The channel is one question, pursued honestly: "
-                "what is an electron?&rdquo;")
+                "What is an Electron?&rdquo;")
 RESEARCH_HANDOFF = ("I work on a model of the vacuum. It&rsquo;s unproven. The Research page says what would kill it, "
                     "and which of its laws already lost.")
 ABOUT = ("I&rsquo;m a staff electrical engineer in grid-scale energy storage. My job is finding out why real circuits "
          "fail &mdash; megawatts on the line, root cause or nothing, no partial credit. This channel points that same "
-         "discipline at a question nobody can answer: what is an electron? We know what it <em>does</em> to a part in a "
+         "discipline at a question nobody can answer: What is an Electron? We know what it <em>does</em> to a part in a "
          "trillion. Nobody knows what it <em>is</em>. I make three kinds of video &mdash; history, told faithfully from "
          "the original papers; speculation, labeled as speculation; and shop practice. You&rsquo;ll always know which one "
          "you&rsquo;re watching. And when I get something wrong, it goes on a public corrections ledger.")
@@ -111,7 +111,7 @@ def home(ctx: Ctx):
                      "row--tighter", rail=badge("speculative"))
 
     return page(ctx, title=s["title"], active=None,
-                description="One question, pursued honestly: what is an electron? History told from the original papers, "
+                description="One question, pursued honestly: What is an Electron? History told from the original papers, "
                             "speculation labeled as speculation, and shop practice.",
                 body=hero + orient + episode_row + author_row + records_row + disclosure + subscribe(ctx))
 

@@ -113,3 +113,15 @@ def test_images_with_metadata_are_refused(tmp_path):
     build.build(tmp_path / "site")
     (tmp_path / "site" / "img" / "leak.jpg").write_bytes(b"\xff\xd8\xff\xe1\x00\x10Exif\x00\x00rest")
     assert any("metadata" in p for p in check.check(tmp_path / "site"))
+
+
+def test_the_question_is_cased_what_is_an_electron_everywhere(tmp_path):
+    import re
+    build.build(tmp_path / "site")
+    seen = 0
+    for page in (tmp_path / "site").rglob("*.html"):
+        text = re.sub(r"<[^>]+>", " ", page.read_text(encoding="utf-8"))
+        hits = re.findall(r"what is an electron\?", text, re.I)
+        assert all(h == "What is an Electron?" for h in hits), page
+        seen += len(hits)
+    assert seen and "What is an electron?" not in (tmp_path / "site" / "index.html").read_text(encoding="utf-8")
