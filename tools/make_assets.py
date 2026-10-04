@@ -56,9 +56,10 @@ FONTS = {
 # Longest first, so the spaced family name is replaced before its PostScript form could match inside it.
 RENAME = (("Source Serif 4", "EP Serif"), ("SourceSerif4", "EPSerif"), ("IBM Plex Mono", "EP Mono"), ("IBMPlexMono", "EPMono"))
 RESERVED = ("Plex", "Source")
-# name IDs that keep the upstream wording: copyright, trademark, license, license URL
+# name IDs that keep the upstream wording: copyright, trademark, license description, license URL.
+# Every other record, the description (10) included, must be free of a Reserved Font Name.
 KEEP_NAME_IDS = {0, 7, 13, 14}
-DESCRIPTION = "A subset of {upstream}, renamed under the SIL Open Font License 1.1 for electron-plumber.com."
+DESCRIPTION = "Subset for electron-plumber.com, modified from the original under the SIL Open Font License 1.1."
 
 UNICODES = sorted({*range(0x20, 0x7F), *range(0xA0, 0x180),  # Basic Latin, Latin-1, Latin Extended-A
                    *range(0x370, 0x400),                      # Greek
@@ -82,8 +83,9 @@ def fetch(key: str, cache: Path) -> Path:
     return path
 
 
-def rename(font, upstream: str):
+def rename(font):
     table = font["name"]
+    table.removeNames(nameID=10)
     for record in table.names:
         if record.nameID in KEEP_NAME_IDS:
             continue
@@ -91,14 +93,14 @@ def rename(font, upstream: str):
         for old, new in RENAME:
             text = text.replace(old, new)
         record.string = text
+    table.setName(DESCRIPTION, 10, 3, 1, 0x409)
     left = [(r.nameID, r.toUnicode()) for r in table.names
             if r.nameID not in KEEP_NAME_IDS and any(word in r.toUnicode() for word in RESERVED)]
     if left:
         sys.exit(f"a Reserved Font Name survived the rename: {left}")
-    table.setName(DESCRIPTION.format(upstream=upstream), 10, 3, 1, 0x409)
 
 
-def make_font(source: Path, limits, upstream: str) -> bytes:
+def make_font(source: Path, limits) -> bytes:
     from fontTools import subset
     from fontTools.ttLib import TTFont
     from fontTools.varLib import instancer
@@ -114,7 +116,7 @@ def make_font(source: Path, limits, upstream: str) -> bytes:
     subsetter.subset(font)
     if limits:
         font = instancer.instantiateVariableFont(font, limits)
-    rename(font, upstream)
+    rename(font)
     font.flavor = "woff2"
     out = io.BytesIO()
     font.save(out)
@@ -126,8 +128,7 @@ def fonts():
     with tempfile.TemporaryDirectory() as tmp:
         cache = Path(tmp)
         for out, (key, limits) in FONTS.items():
-            upstream = "Source Serif 4" if key.startswith("serif") else "IBM Plex Mono"
-            data = make_font(fetch(key, cache), limits, upstream)
+            data = make_font(fetch(key, cache), limits)
             (FONTS_OUT / out).write_bytes(data)
             print(f"static/fonts/{out}: {len(data):,} bytes")
         notice = ("EP Serif and EP Mono are Modified Versions of Source Serif 4 and IBM Plex Mono: subset and renamed,\n"
