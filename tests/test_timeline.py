@@ -572,3 +572,51 @@ def test_site_js_and_css_stay_within_the_axis_budget():
     assert len(css) - CSS_BASELINE <= 3_900
     assert len(js) - JS_BASELINE <= 10_000
     assert len(gzip.compress(js, 9)) - JS_GZIP_BASELINE <= 3.5 * 1024
+
+
+EINSTEIN_TITLE = 'Einstein\'s \\"On the Electrodynamics of Moving Bodies\\"'
+EINSTEIN_CURLY = "Einstein\u2019s \u201cOn the Electrodynamics of Moving Bodies\u201d"
+
+
+def test_titles_summaries_and_citations_get_typographic_quotes(timeline_root):
+    bib_path = timeline_root / "content" / "sources.bib"
+    bib_path.write_text(bib_path.read_text(encoding="utf-8").replace(
+        "Fixture entry michelson1887ether", "The Ether and the Earth's Atmosphere"), encoding="utf-8")
+    einstein = EVENT.replace('"Fixture title"', f'"{EINSTEIN_TITLE}"').replace(
+        '"Fixture summary."', '"Albert Einstein\'s paper \\"Zur Elektrodynamik\\"."').replace(
+        'era = "ether"', 'era = "ether"\nrelated = ["1887-michelson-morley"]')
+    other = event("1887-michelson-morley", "1887-11", "ether", "experiment", ["ether"], "michelson1887ether",
+                  extra='related = ["1843-hamilton-quaternions"]')
+    html = render(timeline_root, einstein + "\n" + other)
+    assert re.search(r'class="h3 tl__title"><a href="#1843-hamilton-quaternions">' + EINSTEIN_CURLY + "</a>", html)
+    assert f'See also <a href="#1843-hamilton-quaternions">{EINSTEIN_CURLY}</a>' in html
+    assert "Albert Einstein\u2019s paper \u201cZur Elektrodynamik\u201d." in html
+    assert "<cite>The Ether and the Earth\u2019s Atmosphere</cite>" in html
+    assert "Earth's" not in html and "Einstein's" not in html
+
+
+@pytest.mark.parametrize("key", ["title", "summary"])
+@pytest.mark.parametrize("char", ["*", "_", "`"])
+def test_markup_characters_in_titles_and_summaries_are_refused(timeline_root, key, char):
+    text = EVENT.replace('"Fixture title"', f'"Fixture {char}title"') if key == "title" else \
+        EVENT.replace('"Fixture summary."', f'"Fixture {char}summary."')
+    with pytest.raises(SystemExit, match=re.escape(f"{key} must be plain text (no *, _ or `)")):
+        load(timeline_root, text)
+
+
+def test_an_episode_title_with_quotes_renders_curly_everywhere(tmp_path, published_root):
+    toml = published_root / "content" / "episodes.toml"
+    toml.write_text(toml.read_text(encoding="utf-8").replace('title = "X"', 'title = "It\'s \\"x\\""'), encoding="utf-8")
+    build.build(tmp_path / "site", root=published_root)
+    curly = "It\u2019s \u201cx\u201d"
+    episodes = (tmp_path / "site" / "episodes" / "index.html").read_text(encoding="utf-8")
+    home = (tmp_path / "site" / "index.html").read_text(encoding="utf-8")
+    page = (tmp_path / "site" / "episodes" / "001-x" / "index.html").read_text(encoding="utf-8")
+    assert f'<h2 class="h2 h2--row g16">{curly}</h2>' in episodes
+    assert f'<h2 class="h2 g16">{curly}</h2>' in home
+    assert f'<h1 class="h1 h1--page g20">{curly}</h1>' in page
+    assert f"<title>Episode 001: {curly} | The Electron Plumber</title>" in page
+    assert f'<meta property="og:title" content="Episode 001: {curly} | The Electron Plumber">' in page
+    for html in (episodes, home, page):
+        assert "It's" not in html and "&quot;x&quot;" not in html
+    assert check.check(tmp_path / "site") == []

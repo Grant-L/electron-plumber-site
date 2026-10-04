@@ -26,6 +26,12 @@ def _smart_quotes(text):
     return text.replace("'", "\u2019")
 
 
+def plain(text):
+    """Plain data text for HTML: typographic quotes, then escaping. No Markdown: * _ ` [ ] stay literal.
+    Safe in element content and in quoted attributes."""
+    return html.escape(_smart_quotes(str(text)), quote=True)
+
+
 def inline(text, link_base=""):
     """Inline Markdown to HTML. Raw HTML in the source is escaped, never passed through."""
     slots = []

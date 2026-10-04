@@ -73,3 +73,18 @@ def test_quotes_after_emphasis_markers_open_correctly():
 def test_more_unsupported_markdown_fails_loudly(source):
     with pytest.raises(md.MarkdownError):
         md.render(source)
+
+
+def test_plain_gives_typographic_quotes_and_escapes():
+    assert md.plain('It\'s "x"') == "It\u2019s \u201cx\u201d"
+    assert md.plain("a < b & c") == "a &lt; b &amp; c"
+
+
+def test_plain_leaves_markdown_characters_literal():
+    out = md.plain("*x* _y_ **z** `c` [l](u)")
+    assert out == "*x* _y_ **z** `c` [l](u)" and "<em>" not in out and "<strong>" not in out
+
+
+def test_plain_is_safe_in_a_quoted_attribute():
+    out = md.plain('say "hi" to <b> & \'you\'')
+    assert '"' not in out and "'" not in out and "<" not in out

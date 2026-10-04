@@ -45,6 +45,8 @@ CHECKED_BY = re.compile(r"[A-Z][A-Za-z .'-]{1,39}")
 CLAIM = re.compile(r"ep(\d{3})-c\d{2,}")
 DOI = re.compile(r"10\.\d{4,9}/\S+")
 MD_LINK = re.compile(r"\]\(|<https?://")
+# Timeline titles and summaries render as plain text, so a character that reads as Markdown emphasis or code is refused.
+MARKUP = re.compile(r"[*_`]")
 
 
 class ContentError(SystemExit):
@@ -441,6 +443,9 @@ def load_timeline(root: Path, episodes, today=None):
             raise ContentError(f"{where}: summary must be 1 to 600 characters")
         if MD_LINK.search(ev.summary):
             raise ContentError(f"{where}: summary must not contain links")
+        for key in ("title", "summary"):
+            if MARKUP.search(getattr(ev, key)):
+                raise ContentError(f"{where}: {key} must be plain text (no *, _ or `)")
         _strings(ev.people, where, "people")
 
         # Vocabularies.

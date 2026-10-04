@@ -1,6 +1,7 @@
 """Page shell and the shared components: header, footer (the spec plate), badges, buttons, the title card."""
 import html as _html
 
+from . import md
 from .content import ARCS
 
 FONTS = ("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600"
@@ -79,7 +80,7 @@ def arrow(text, href, mod="", external=False, back=False):
 def card(ctx, serial, title, *, youtube_id="", dim=False, nxt=False):
     """The video title card: mark, wordmark, hairline, the job, serial. With a video id it becomes a click-to-load player;
     without one it is decoration beside a real heading, so it is hidden from assistive technology."""
-    serial, title, video = esc(serial), esc(title), esc(youtube_id)
+    serial, title, video = esc(serial), md.plain(title), esc(youtube_id)
     mods = (" card--dim" if dim else "") + (" card--next" if nxt else "")
     data = f' data-youtube="{video}" data-title="{serial}: {title}"' if youtube_id else ""
     hidden = "" if youtube_id else ' aria-hidden="true"'
@@ -163,14 +164,14 @@ def page(ctx, *, title, description, body, active=None, arc=None, noindex=False)
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{esc(full_title)}</title>
+<title>{md.plain(full_title)}</title>
 <meta name="description" content="{esc(description)}">
 {robots}<link rel="canonical" href="{esc(url)}">
 <meta name="theme-color" content="#0e1116">
 <meta name="color-scheme" content="dark">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{esc(s['title'])}">
-<meta property="og:title" content="{esc(full_title)}">
+<meta property="og:title" content="{md.plain(full_title)}">
 <meta property="og:description" content="{esc(description)}">
 <meta property="og:url" content="{esc(url)}">
 <meta property="og:image" content="{esc(s['url'].rstrip('/'))}/img/social-share.png">

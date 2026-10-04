@@ -31,7 +31,7 @@ def _badge(ep):
 
 def _next_line(ctx, ep):
     return (f'<hr class="rule rule--line g40"><div class="between g28"><div class="stack">'
-            f'{kicker("Next &middot; " + ep.serial, "kicker--orange")}<div class="next__title g8">{esc(ep.title)}</div>'
+            f'{kicker("Next &middot; " + ep.serial, "kicker--orange")}<div class="next__title g8">{md.plain(ep.title)}</div>'
             f'<div class="mono g8">In production</div></div>{_badge(ep)}</div>')
 
 
@@ -75,7 +75,7 @@ def home(ctx: Ctx):
     if latest:
         meta = f'{kicker(latest.serial, "kicker--white")}{badge(latest.arc)}{mono(esc(latest.date) or "[DATE]")}'
         body = (f'<div class="latest"><div class="latest__card">{card(ctx, latest.serial, latest.title, youtube_id=latest.youtube_id)}</div>'
-                f'<div class="stack"><div class="cluster cluster--tight">{meta}</div><h2 class="h2 g16">{esc(latest.title)}</h2>'
+                f'<div class="stack"><div class="cluster cluster--tight">{meta}</div><h2 class="h2 g16">{md.plain(latest.title)}</h2>'
                 f'<p class="small g16">{esc(latest.excerpt)}</p><div class="cluster g28">{btn("Watch", ctx.to(latest.url))}'
                 f'{arrow("Episode notes", ctx.to(latest.url) + "#learning-goals")}</div></div></div>'
                 + (_next_line(ctx, upcoming) if upcoming else ""))
@@ -83,7 +83,7 @@ def home(ctx: Ctx):
     elif upcoming:
         body = (f'<div class="latest"><div class="latest__card">{card(ctx, upcoming.serial, upcoming.title, dim=True, nxt=True)}</div>'
                 f'<div class="stack"><div class="cluster cluster--tight">{kicker("Next &middot; " + upcoming.serial, "kicker--orange")}'
-                f'{_badge(upcoming)}</div><h2 class="h2 g16" style="color: var(--orange);">{esc(upcoming.title)}</h2>'
+                f'{_badge(upcoming)}</div><h2 class="h2 g16" style="color: var(--orange);">{md.plain(upcoming.title)}</h2>'
                 f'<div class="mono g16">In production</div>'
                 f'<div class="g28">{arrow("Subscribe on YouTube", ctx.sub_url, external=True)}</div></div></div>')
         episode_row = row("Next episode", body)
@@ -140,15 +140,15 @@ def episodes(ctx: Ctx):
     for ep in published:
         meta = f'{kicker(ep.serial, "kicker--white")}{badge(ep.arc)}{mono(" &middot; ".join((esc(ep.date) or "[DATE]", esc(ep.runtime) or "[RUNTIME]")))}'
         rows += (f'<article class="ep-row" data-arc="{ep.arc}"><div class="inner"><div class="ep-row__card">'
-                 f'<a href="{ctx.to(ep.url)}" aria-label="{esc(ep.serial)}: {esc(ep.title)}">{card(ctx, ep.serial, ep.title)}</a></div>'
-                 f'<div class="stack"><div class="cluster cluster--tight">{meta}</div><h2 class="h2 h2--row g16">{esc(ep.title)}</h2>'
+                 f'<a href="{ctx.to(ep.url)}" aria-label="{esc(ep.serial)}: {md.plain(ep.title)}">{card(ctx, ep.serial, ep.title)}</a></div>'
+                 f'<div class="stack"><div class="cluster cluster--tight">{meta}</div><h2 class="h2 h2--row g16">{md.plain(ep.title)}</h2>'
                  f'<p class="small g12">{esc(ep.excerpt)}</p><div class="cluster g24">{btn("Watch", ctx.to(ep.url))}'
                  f'{arrow("Episode notes", ctx.to(ep.url) + "#learning-goals")}</div></div></div></article>')
     if upcoming:
         arc_attr = f' data-arc="{upcoming.arc}"' if upcoming.arc else ""
         rows += (f'<article class="ep-row"{arc_attr}><div class="inner"><div class="ep-row__card">{card(ctx, upcoming.serial, upcoming.title, dim=True, nxt=True)}</div>'
                  f'<div class="stack"><div class="cluster cluster--tight">{kicker("Next &middot; " + upcoming.serial, "kicker--orange")}{_badge(upcoming)}</div>'
-                 f'<h2 class="h2 h2--row g16" style="color: var(--orange);">{esc(upcoming.title)}</h2>'
+                 f'<h2 class="h2 h2--row g16" style="color: var(--orange);">{md.plain(upcoming.title)}</h2>'
                  + (f'<p class="small g12">{esc(upcoming.excerpt)}</p>' if upcoming.excerpt else "")
                  + '<div class="mono g20">In production</div></div></div></article>')
     if not rows:
@@ -190,7 +190,7 @@ def _episode_claims(ctx, ep):
         events = [ev for ev in ep.events if claim in ev.claims]
         if events:
             parts.append("On the History page: " + ", ".join(
-                f'<a href="{ctx.to("history/")}#{esc(ev.id)}">{esc(ev.title)}</a>' for ev in events))
+                f'<a href="{ctx.to("history/")}#{esc(ev.id)}">{md.plain(ev.title)}</a>' for ev in events))
         if cors:
             parts.append(", ".join(f'<a href="#{esc(c.id)}">{esc(c.id)}</a>' for c in cors))
         items += f'<li id="{esc(claim)}">{" &middot; ".join(parts)}</li>'
@@ -203,7 +203,7 @@ def _episode_history(ctx, ep):
         return ""
     prefix = f"ep{ep.number:03d}-"
     items = "".join(
-        f'<li>{_when(ev)} <a href="{ctx.to("history/")}#{esc(ev.id)}">{esc(ev.title)}</a>'
+        f'<li>{_when(ev)} <a href="{ctx.to("history/")}#{esc(ev.id)}">{md.plain(ev.title)}</a>'
         f'{_claim_note([c for c in ev.claims if c.startswith(prefix)])}</li>' for ev in ep.events)
     return f'<section class="block" id="ep-history"><h2>On the History page</h2><ul class="ep-history">{items}</ul></section>'
 
@@ -228,7 +228,7 @@ def episode(ctx: Ctx, ep):
     meta = " &middot; ".join((esc(ep.date) or "[DATE]", esc(ep.runtime) or "[RUNTIME]"))
     head = (f'<div class="post-head">{arrow("All episodes", ctx.to("episodes/"), back=True)}'
             f'<div class="cluster cluster--tight g28">{kicker(ep.serial, "kicker--white")}{badge(ep.arc)}{mono(meta)}</div>'
-            f'<h1 class="h1 h1--page g20">{esc(ep.title)}</h1>'
+            f'<h1 class="h1 h1--page g20">{md.plain(ep.title)}</h1>'
             + (f'<p class="deck deck--sm g20">{esc(ep.orientation)}</p>' if ep.orientation else "") + '</div>')
     video = f'<div class="post-video">{card(ctx, ep.serial, ep.title, youtube_id=ep.youtube_id)}</div>'
 
@@ -252,7 +252,7 @@ def episode(ctx: Ctx, ep):
     if ctx.upcoming:
         up = ctx.upcoming
         nxt = (f'<div class="next-band"><a href="{ctx.to("episodes/")}"><div class="stack">{kicker("Next &middot; " + up.serial, "kicker--orange")}'
-               f'<div class="next-band__title g12">{esc(up.title)}</div></div>{_badge(up)}</a></div>')
+               f'<div class="next-band__title g12">{md.plain(up.title)}</div></div>{_badge(up)}</a></div>')
 
     return page(ctx, title=f"{ep.serial}: {ep.title}", active="Episodes", arc=ep.arc or None, noindex=ep.draft,
                 description=ep.excerpt or f"{ep.serial} of The Electron Plumber.", body=head + video + article + nxt)
@@ -317,14 +317,14 @@ def _citation(entry, src):
         return "" if text.endswith((".", "?", "!")) else "."
 
     title, rest = f["title"], ([_authors(entry.authors)] if entry.authors else []) + [where]
-    text = f"<cite>{esc(title)}</cite>{stop(title)} " + " ".join(esc(p) + stop(p) for p in rest)
+    text = f"<cite>{md.plain(title)}</cite>{stop(title)} " + " ".join(md.plain(p) + stop(p) for p in rest)
     doi, url = src.doi or f.get("doi", ""), src.url or f.get("url", "")
     if doi:
         text += f' <a href="https://doi.org/{esc(doi)}" rel="noopener">doi:{esc(doi)}</a>'
     elif url:
         text += f' <a href="{esc(url)}" rel="noopener">{esc(url.removeprefix("https://"))}</a>'
     if src.note:
-        text += f" {esc(src.note)}"
+        text += f" {md.plain(src.note)}"
     return f'<li>{text} <span class="mono">{src.kind.capitalize()}</span></li>'
 
 
@@ -387,14 +387,14 @@ def history(ctx: Ctx):
                                   esc(", ".join(content.THREADS[t] for t in ev.thread)), content.VERIFIED[ev.verified]])
         people = f'<p class="mono tl__people">{esc(", ".join(ev.people))}</p>' if ev.people else ""
         sources = "".join(_citation(s.entry, s) for s in ev.sources)
-        related = ('<p class="small tl__related">See also ' + ", ".join(f'<a href="#{esc(r)}">{esc(titles[r])}</a>' for r in ev.related)
+        related = ('<p class="small tl__related">See also ' + ", ".join(f'<a href="#{esc(r)}">{md.plain(titles[r])}</a>' for r in ev.related)
                    + "</p>") if ev.related else ""
         items += (f'<li class="tl" id="{esc(ev.id)}" data-era="{esc(ev.era)}" data-thread="{esc(" ".join(ev.thread))}" '
                   f'data-class="{esc(ev.cls)}" data-verified="{esc(ev.verified)}" data-year="{ev.sort_key[0]}"><article>'
                   f'<p class="mono tl__date">{_when(ev)}</p>'
-                  f'<h2 class="h3 tl__title"><a href="#{esc(ev.id)}">{esc(ev.title)}</a></h2>'
+                  f'<h2 class="h3 tl__title"><a href="#{esc(ev.id)}">{md.plain(ev.title)}</a></h2>'
                   f'<p class="mono tl__meta">{meta}</p>'
-                  f'<p class="small tl__summary">{md.inline(ev.summary)}</p>{people}'
+                  f'<p class="small tl__summary">{md.plain(ev.summary)}</p>{people}'
                   f'<ol class="tl__sources">{sources}</ol>'
                   f'<p class="mono tl__checked">Checked {_time(ev.checked_date)}</p>'
                   f'{_episode_links(ctx, ev)}{related}</article></li>')
@@ -590,10 +590,10 @@ def _start_step(ctx, n, step):
     if step.kind == "episode":
         ep = step.episode
         if ep.live:
-            heading = f'<a href="{ctx.to(ep.url)}">{esc(ep.title)}</a>'
+            heading = f'<a href="{ctx.to(ep.url)}">{md.plain(ep.title)}</a>'
             text, arc = f'<p class="small g12">{esc(ep.excerpt)}</p>', ep.arc
         else:
-            heading = esc(ep.title)
+            heading = md.plain(ep.title)
             text, arc = f'<p class="small g12">{DECK}</p>{mono(ep.serial + " is in production", "g12")}', None
     else:
         title, description = PAGE_TEXT[step.route]
