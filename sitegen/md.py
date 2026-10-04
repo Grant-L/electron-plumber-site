@@ -61,6 +61,15 @@ def inline(text, link_base=""):
     return re.sub(r"\x00(\d+)\x00", lambda m: slots[int(m.group(1))], text)
 
 
+def _reject_unsupported(stripped):
+    """Constructs outside the subset fail the build rather than render wrong: at top level, in a blockquote, in a list item."""
+    if stripped.startswith("|") or re.fullmatch(r"[\s:|-]*-\|-[\s:|-]*", stripped):
+        raise MarkdownError(f"tables are not supported: {stripped[:40]!r}")
+    if (re.fullmatch(r"-{3,}|\*{3,}|_{3,}|=+", stripped) or stripped.startswith(("~~~", "#####", "!["))
+            or re.match(r"(?:\+|\d+\))\s", stripped)):
+        raise MarkdownError(f"unsupported Markdown: {stripped[:40]!r}")
+
+
 def render(source, link_base="", heading_shift=0):
     """Block-level Markdown to HTML."""
     lines = _COMMENT.sub("", source).replace("\t", "    ").splitlines()
@@ -102,14 +111,11 @@ def render(source, link_base="", heading_shift=0):
             quote = []
             while i < len(lines) and lines[i].strip().startswith(">"):
                 quote.append(lines[i].strip()[1:].strip())
+                _reject_unsupported(quote[-1])
                 i += 1
             out.append("<blockquote><p>" + inline(" ".join(quote), link_base) + "</p></blockquote>")
             continue
-        if stripped.startswith("|") or re.fullmatch(r"[\s:|-]*-\|-[\s:|-]*", stripped):
-            raise MarkdownError(f"tables are not supported: {stripped[:40]!r}")
-        if (re.fullmatch(r"-{3,}|\*{3,}|_{3,}|=+", stripped) or stripped.startswith(("~~~", "#####", "!["))
-                or re.match(r"(?:\+|\d+\))\s", stripped)):
-            raise MarkdownError(f"unsupported Markdown: {stripped[:40]!r}")
+        _reject_unsupported(stripped)
         m = _ITEM.match(line)
         if m and para:
             flush()  # as on GitHub, a list may interrupt a paragraph
@@ -126,12 +132,14 @@ def render(source, link_base="", heading_shift=0):
                 m = _ITEM.match(lines[i])
                 if same_list(lines[i]):
                     items.append([m.group(3).strip()])
+                    _reject_unsupported(items[-1][0])
                 elif m and len(m.group(1)) > indent:
                     raise MarkdownError(f"nested lists are not supported: {lines[i].strip()[:40]!r}")
                 elif m:
                     break  # a different list starts here
                 elif lines[i].strip() and lines[i].startswith(" ") and items:
                     items[-1].append(lines[i].strip())
+                    _reject_unsupported(items[-1][-1])
                 elif not lines[i].strip() and i + 1 < len(lines) and same_list(lines[i + 1]):
                     pass  # a blank line between two items of the same list
                 else:

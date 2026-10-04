@@ -44,7 +44,9 @@ Every build follows the brief-and-receipt pattern:
   - a table delimiter row;
   - a horizontal rule or setext underline: a line made only of three or more `-`, `*` or `_`, or only of `=`.
 
-  Anything else outside the subset may render wrong without any error. Examples are indented code, reference-style links, an image mid-paragraph, and a table inside a blockquote or list item. So stick to the subset, and check the rendered page with `make serve` (or `make serve-drafts` for a draft).
+  The last three checks also run on the text of each blockquote line, each list item and each continuation line.
+
+  Anything else outside the subset may render wrong without any error. Examples are indented code, reference-style links and an image mid-paragraph. So stick to the subset, and check the rendered page with `make serve` (or `make serve-drafts` for a draft).
 - `build.py`: routes. The pages are `/`, `/episodes/`, `/history/`, `/start/` (linked from Home and About, not in `NAV`), `/research/`, `/corrections/`, `/about/`, `/404.html`, and one page per published episode at `/episodes/<slug>/`. Short-link redirects are `/notes`, `/errata` (the notes repo's `ERRATA.md`), `/code`, `/letter`, `/yt`, and `/NNN` for each published episode. A drafts build adds the same page and `/NNN` link for each draft. `/feed.atom`, an Atom feed of published episodes (`sitegen/feed.py`; drafts never enter it). It also writes `sitemap.xml`, `robots.txt`, `CNAME` and `.nojekyll`.
 - `static/`: copied to the site root as is. Right now there's one stylesheet (`static/css/site.css`) and one script (`static/js/site.js`). Keep it that way.
 - `design/`: the mark (SVG and PNG) and `design/make_mark.py`, which draws it. The script writes into `design/mark/`. It also overwrites tracked brand files in `static/`: `favicon.svg`, `favicon.png`, `apple-touch-icon.png`, and `img/mark-plate.svg`, `img/mark-small.svg` and `img/mark-banner-halo.svg`. Review that diff before committing.
