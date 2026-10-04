@@ -522,7 +522,9 @@ GOLDEN_ERA_CHIPS = ('<div class="filter__chips" role="group" aria-label="Filter 
                     'data-value="all" aria-pressed="true">All eras</button><button class="chip" type="button" data-value="ether" '
                     'aria-pressed="false">Fields and ether</button></div>')
 AXIS_ATTRS = re.compile(r' data-(?:year|from|to)="[^"]*"')
-JS_BASELINE, JS_GZIP_BASELINE, CSS_BASELINE = 3697, 1441, 24194  # bytes on main before the axis
+# Bytes on main before the axis; the CSS baseline also counts the 1,250 bytes of self-hosted @font-face rules,
+# which are not part of the axis budget.
+JS_BASELINE, JS_GZIP_BASELINE, CSS_BASELINE = 3697, 1441, 24194 + 1250
 
 
 def test_each_entry_carries_its_sort_key_year(timeline_root):
