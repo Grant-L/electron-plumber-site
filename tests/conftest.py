@@ -66,5 +66,12 @@ def published_root(timeline_root):
     build.build(out, root=published_root) builds a complete fixture site."""
     (timeline_root / "content" / "episodes.toml").write_text(PUBLISHED_EP1 + EP1_SOURCE, encoding="utf-8")
     (timeline_root / "content" / "episodes" / "001-x.md").write_text(NOTES, encoding="utf-8")
-    shutil.copytree(ROOT / "static", timeline_root / "static")
+    copy_static(timeline_root)
     return timeline_root
+
+
+def copy_static(root):
+    """static/ into a fixture root, without the History images: only the real timeline uses them, so a fixture
+    timeline would leave them unreferenced."""
+    history = str(ROOT / "static" / "img" / "history")
+    shutil.copytree(ROOT / "static", root / "static", ignore=lambda folder, names: names if folder == history else [])

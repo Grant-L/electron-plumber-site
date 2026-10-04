@@ -7,6 +7,7 @@ date = "1843-10-16"
 date_basis = "event"
 title = "Hamilton discovers quaternions on Brougham Bridge"
 summary = "Walking along the Royal Canal in Dublin to a meeting of the Royal Irish Academy, William Rowan Hamilton saw how to multiply numbers in four parts, which he called quaternions: i squared = j squared = k squared = ijk = -1. He cut the formula into a stone of Brougham Bridge with a knife. He later told the story in an 1865 letter to his son."
+oneliner = "Hamilton found how to multiply four-part numbers, quaternions, and cut the rule into a stone of a Dublin bridge."
 people = ["William Rowan Hamilton"]
 era = "ether"
 class = "theory"
@@ -14,6 +15,17 @@ thread = ["vectors-quaternions"]
 verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-02"
+
+  [event.image]
+  file = "static/img/history/1843-hamilton-quaternions.webp"
+  alt = "William Rowan Hamilton in his fifties, head and shoulders, facing slightly right."
+  author = "Unknown photographer"
+  title = "Sir William Rowan Hamilton, head-and-shoulders portrait"
+  source_url = "https://commons.wikimedia.org/wiki/File:Sir_William_Rowan_Hamilton,_head-and-shoulders_portrait,_facing_slightly_right_LCCN90713420.jpg"
+  license = "public-domain"
+  width = 320
+  height = 400
+  caption = "Photographed at Fulneck, 1857 or 1859; published 1885."
 
   [[event.source]]
   key = "hamilton1865letter"
@@ -25,6 +37,7 @@ date = "1867-02-18"
 date_basis = "read"
 title = "Kelvin proposes that atoms are vortex rings"
 summary = "William Thomson, later Lord Kelvin, read 'On Vortex Atoms' to the Royal Society of Edinburgh. Building on Helmholtz's theorems on vortex motion and Tait's smoke-ring demonstrations, he proposed that atoms are vortex rings in a perfect fluid filling space, and that knotted or linked rings could account for the different elements."
+oneliner = "Building on Helmholtz and Tait, Kelvin pictured atoms as spinning rings in a fluid filling space, knotted or linked to make the elements."
 people = ["William Thomson (Lord Kelvin)"]
 era = "ether"
 class = "theory"
@@ -32,6 +45,17 @@ thread = ["vortex-atoms", "ether", "topology-knots"]
 verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
+
+  [event.image]
+  file = "static/img/history/1867-kelvin-vortex-atoms.webp"
+  alt = "William Thomson in his forties, with a full dark beard, seated in an academic gown and holding papers."
+  author = "Thomas Annan"
+  title = "Sir William Thomson, Professor of Natural Philosophy"
+  source_url = "https://commons.wikimedia.org/wiki/File:Lord_Kelvin.jpg"
+  license = "public-domain"
+  width = 320
+  height = 382
+  caption = "Photograph published in 1871, in Memorials of the Old College of Glasgow."
 
   [[event.source]]
   key = "kelvin1867vortex"
@@ -44,6 +68,7 @@ date = "1887-11"
 date_basis = "published"
 title = "Michelson and Morley look for Earth's motion through the ether"
 summary = "Albert Michelson and Edward Morley used a rotating optical interferometer in Cleveland to look for the Earth's motion through the luminiferous ether, the medium then thought to carry light. The fringe shift they saw was far smaller than the ether theory of the day predicted. They published the result in the American Journal of Science in November 1887."
+oneliner = "A precise light experiment looked for the Earth's motion through the ether and found far less than theory predicted."
 people = ["Albert A. Michelson", "Edward W. Morley"]
 era = "ether"
 class = "experiment"
@@ -51,6 +76,17 @@ thread = ["ether"]
 verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
+
+  [event.image]
+  file = "static/img/history/1887-michelson-morley.webp"
+  alt = "Engraving of a large square stone slab carrying mirrors and a lamp, resting on a ring-shaped float above a brick pier."
+  author = "Albert A. Michelson and Edward W. Morley"
+  title = "On the Relative Motion of the Earth and the Luminiferous Ether, Fig. 3"
+  source_url = "https://commons.wikimedia.org/wiki/File:On_the_Relative_Motion_of_the_Earth_and_the_Luminiferous_Ether_-_Fig_3.png"
+  license = "public-domain"
+  width = 320
+  height = 200
+  caption = "Fig. 3 of Michelson and Morley's 1887 paper: the apparatus in perspective."
 
   [[event.source]]
   key = "michelson1887ether"
@@ -63,6 +99,7 @@ date = "1905-06-30"
 date_basis = "received"
 title = "Einstein's \"On the Electrodynamics of Moving Bodies\""
 summary = "Albert Einstein's paper, received by Annalen der Physik on 30 June 1905, set out special relativity. It rests on two postulates: the laws of physics are the same for every observer in uniform motion, and light in empty space always travels at the same speed. From these he derived new rules for space, time and electromagnetic fields, and applied them to the motion of the electron."
+oneliner = "Einstein set out special relativity: the same laws and the same speed of light for every steadily moving observer."
 people = ["Albert Einstein"]
 era = "relativity"
 class = "theory"
@@ -70,6 +107,17 @@ thread = ["relativity", "electromagnetism"]
 verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
+
+  [event.image]
+  file = "static/img/history/1905-einstein-electrodynamics.webp"
+  alt = "Albert Einstein in his mid-twenties, in a checked suit, seated with one arm on a sloping desk."
+  author = "Unknown photographer (attributed to Lucien Chavan)"
+  title = "Albert Einstein im Patentamt Bern"
+  source_url = "https://commons.wikimedia.org/wiki/File:Albert_Einstein_ETH-Bib_Portr_05937.jpg"
+  license = "public-domain"
+  width = 320
+  height = 427
+  caption = "At the patent office in Bern, about 1904–05."
 
   [[event.source]]
   key = "einstein1905elektrodynamik"
@@ -82,6 +130,7 @@ date = "1928-02-01"
 date_basis = "published"
 title = "Dirac's relativistic equation for the electron"
 summary = "Paul Dirac published a wave equation for the electron that agrees with special relativity. The electron's spin and its magnetic moment come out of the equation on their own instead of being added by hand. It gives the electron a magnetic moment of one Bohr magneton, a g-factor of exactly 2."
+oneliner = "Dirac's equation joined quantum mechanics and special relativity for the electron, giving its spin and magnetic moment."
 people = ["Paul A. M. Dirac"]
 era = "quantum-electron"
 class = "theory"
@@ -89,6 +138,16 @@ thread = ["quantum", "spin-and-moment", "g-factor"]
 verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
+
+  [event.image]
+  file = "static/img/history/1928-dirac-equation.webp"
+  alt = "Dirac's 1928 equation for the electron, written in his original notation."
+  author = "The Electron Plumber"
+  title = "Dirac's equation, 1928"
+  license = "own-work"
+  width = 320
+  height = 240
+  caption = "Dirac's equation in his original 1928 notation (eq. 9), typeset by us."
 
   [[event.source]]
   key = "dirac1928electron"
@@ -101,6 +160,7 @@ date = "1948-02-15"
 date_basis = "published"
 title = "Schwinger calculates the electron's extra magnetic moment"
 summary = "Julian Schwinger used quantum electrodynamics to calculate the first correction to Dirac's value of the electron's magnetic moment. The extra part is alpha divided by 2 pi, about 0.00116, where alpha is the fine-structure constant. He published it as a short letter in the Physical Review."
+oneliner = "Schwinger calculated the first small correction to the electron's magnetic moment beyond Dirac's value."
 people = ["Julian Schwinger"]
 era = "quantum-electron"
 class = "theory"
@@ -108,6 +168,16 @@ thread = ["quantum", "g-factor"]
 verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
+
+  [event.image]
+  file = "static/img/history/1948-schwinger-moment.webp"
+  alt = "Modern diagram of an electron emitting and reabsorbing a photon while interacting with a magnetic field, labelled alpha over two pi."
+  author = "The Electron Plumber"
+  title = "Modern depiction"
+  license = "own-work"
+  width = 320
+  height = 240
+  caption = "Modern depiction of Schwinger's 1948 result, α/2π. His letter had no diagrams; Feynman first published his in 1949."
 
   [[event.source]]
   key = "schwinger1948moment"
@@ -120,6 +190,7 @@ date = "2008-03-26"
 date_basis = "published"
 title = "A single trapped electron gives a new magnetic moment and fine-structure constant"
 summary = "At Harvard, David Hanneke, Shannon Fogwell and Gerald Gabrielse measured the magnetic moment of a single electron held in a trap. They reached a precision better than one part in a trillion, and used the result to determine the fine-structure constant."
+oneliner = "One electron held in a trap at Harvard gave its magnetic moment to better than one part in a trillion."
 people = ["David Hanneke", "Shannon Fogwell", "Gerald Gabrielse"]
 era = "precision"
 class = "measurement"
@@ -127,6 +198,16 @@ thread = ["g-factor", "spin-and-moment"]
 verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
+
+  [event.image]
+  file = "static/img/history/2008-hanneke-electron-moment.webp"
+  alt = "Cross-section of a cylindrical trap: stacked ring electrodes around a single electron, with the magnetic field running vertically."
+  author = "The Electron Plumber"
+  title = "One electron in a trap"
+  license = "own-work"
+  width = 320
+  height = 240
+  caption = "Schematic, not to scale: a cylindrical Penning trap holding one electron, the kind used at Harvard in 2008."
 
   [[event.source]]
   key = "hanneke2008electron"
@@ -139,6 +220,7 @@ date = "2023-02-13"
 date_basis = "published"
 title = "The electron's magnetic moment measured to 0.13 parts per trillion"
 summary = "With a new apparatus at Northwestern University, Xing Fan, Thomas Myers, Benedict Sukra and Gerald Gabrielse measured the magnetic moment of a single trapped electron. Their value of g/2 is 1.001 159 652 180 59, uncertain by 0.13 parts per trillion, about twice as precise as the 2008 result."
+oneliner = "Using a new trap at Northwestern, Gabrielse's group measured the electron's magnetic moment about twice as precisely as in 2008."
 people = ["Xing Fan", "Thomas G. Myers", "Benedict A. D. Sukra", "Gerald Gabrielse"]
 era = "precision"
 class = "measurement"
@@ -146,6 +228,16 @@ thread = ["g-factor", "spin-and-moment"]
 verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
+
+  [event.image]
+  file = "static/img/history/2023-fan-electron-moment.webp"
+  alt = "Chart: the uncertainty in the electron's magnetic moment falling from 0.28 parts per trillion in 2008 to 0.13 in 2023."
+  author = "The Electron Plumber"
+  title = "How precisely we know g"
+  license = "own-work"
+  width = 320
+  height = 240
+  caption = "How precisely the electron's magnetic moment is known, 2008 to 2023."
 
   [[event.source]]
   key = "fan2023electron"

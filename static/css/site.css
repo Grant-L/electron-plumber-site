@@ -4,6 +4,13 @@
  * Speculative label; sky = links, rules, kickers and the Historical label; green = the Practical label;
  * vermillion = excluded results; yellow = defined, not used. The neutrals marked "web" exist only here.
  */
+/* Subsets of Source Serif 4 and IBM Plex Mono, renamed as their OFL requires (tools/make_assets.py, fonts/OFL.txt).
+ * The preload in the page head names ../fonts/ep-serif.woff2 too: keep the two URLs identical. */
+@font-face { font-family: "EP Serif"; src: url("../fonts/ep-serif.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "EP Serif"; src: url("../fonts/ep-serif-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "EP Mono"; src: url("../fonts/ep-mono-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "EP Mono"; src: url("../fonts/ep-mono-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "EP Mono"; src: url("../fonts/ep-mono-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
 :root {
   --bg: #0e1116;
   --fg: #ffffff;
@@ -18,8 +25,8 @@
   --field: #3d4a5c;      /* web: input borders */
   --body: #c9d1db;       /* web */
   --muted: #8b97a6;      /* web */
-  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
-  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --serif: "EP Serif", Georgia, "Times New Roman", serif;
+  --mono: "EP Mono", ui-monospace, Menlo, monospace;
   --pad: clamp(24px, 6.667vw, 96px);
   --rail: 264px;
   --arc: transparent;
@@ -38,6 +45,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 img, svg { display: block; max-width: 100%; }
+img { height: auto; }
+/* Only a wrapper for its sources: the img inside is what the layout sizes. A source still makes an (empty) box,
+ * which a flex parent would space out like an item, so it is taken out of the layout too. */
+picture { display: contents; }
+picture > source { display: none; }
 a { color: var(--sky); }
 a:hover { color: #9bd3f3; }
 h1, h2, h3, p, ul, ol, figure, blockquote { margin: 0; }
@@ -199,17 +211,16 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl { display: block; padding: 40px 0; border-top: 1px solid var(--line); scroll-margin-top: 24px; }
 .tl:first-child { padding-top: 0; border-top: 0; }
 .tl[hidden] { display: none; }
-.tl article { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
-.tl__date { color: var(--sky); }
+.tl article { display: flow-root; max-width: 760px; }
+.tl article > * + :not(button) { margin-top: 10px; }
+.tl__date, .tl__title a:hover { color: var(--sky); }
 .tl__date abbr { text-decoration: none; }
 .tl__title a { color: inherit; text-decoration: none; }
-.tl__title a:hover { color: var(--sky); }
-.tl__summary { color: var(--body); }
-.tl__people { color: var(--body); }
+.tl__summary, .tl__people { color: var(--body); }
+.tl__figure { float: right; width: 160px; margin: 0 0 10px 1rem; }
 .tl__sources { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 1.55; overflow-wrap: anywhere; }
-.tl__sources cite { color: var(--fg); }
-.tl__sources .mono { font-size: 12px; }
-.tl__checked { font-size: 12px; }
+.tl__sources cite, .tl-card__source cite { color: var(--fg); }
+.tl__sources .mono, .tl__checked { font-size: 12px; }
 
 /* The era axis over the timeline, and the phone fold of its filter chips. site.js builds both, so none of this
  * applies without JavaScript. --hit is the marker's hit area, which site.js reads; site.js sets --lanes. */
@@ -234,6 +245,7 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl-axis__dot::before { content: ""; width: 10px; height: 10px; border: 2px solid currentColor; border-radius: 50%; background: currentColor; }
 .tl-axis__dot:hover, .tl-axis__dot:focus-visible, .tl-axis__dot[aria-current] { color: var(--fg); outline-offset: -2px; }
 .tl-axis__dot[aria-current]::before { width: 14px; height: 14px; background: var(--bg); }
+.tl-axis__dot::after { content: ""; position: absolute; inset: 0; translate: var(--off); }
 .tl-axis__more { width: auto; min-width: var(--hit); padding: 0 6px; border: 1px solid currentColor; border-radius: 12px; font: 11px var(--mono); }
 .tl-axis__more::before { content: none; }
 .tl-axis__tip { position: absolute; z-index: 2; max-width: min(320px, 80%); padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-left: 2px solid var(--sky); color: var(--fg); font: 15px/1.4 var(--serif); pointer-events: none; }
@@ -251,9 +263,9 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl-card__title { margin-top: 4px; color: var(--fg); font: 600 18px/1.35 var(--serif); }
 .tl-card__line { margin-top: 8px; color: var(--body); }
 .tl-card__source { margin-top: 8px; font-size: 12px; overflow-wrap: anywhere; }
-.tl-card__source cite { color: var(--fg); }
 .tl-card__read { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 4px; color: var(--sky); font: 500 13px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; }
-.tl__back { display: inline-flex; margin-top: 16px; }
+.tl__back { display: flex; width: 100%; margin-top: 26px; }
+.tl article:has(> .tl__back) > .tl__figure { margin-bottom: 26px; }
 @media (pointer: coarse) {
   .tl-axis { --hit: 44px; }
 }
@@ -358,6 +370,7 @@ a.trow:hover .trow__name { color: var(--sky); }
 }
 @media (max-width: 1180px) {
   .nav-toggle { display: flex; }
+  .footer__legal a { padding: 11px 8px; margin: -11px -8px; }
   .nav { display: none; position: absolute; left: 0; right: 0; top: 64px; z-index: 40; flex-direction: column; align-items: stretch; gap: 0; padding: 8px var(--pad) 24px; background: var(--bg); border-bottom: 1px solid var(--line); }
   .nav.is-open { display: flex; }
   .nav a:not(.btn) { height: 52px; border-bottom: 1px solid var(--line); border-top: 0; }
@@ -391,6 +404,8 @@ a.trow:hover .trow__name { color: var(--sky); }
   .next-band a { flex-direction: column; align-items: flex-start; padding: 48px 0; }
 }
 @media (max-width: 560px) {
+  .tl__figure { float: none; margin: 0; }
+  .tl article:has(> .tl__back) > .tl__figure { margin-bottom: 0; }
   .row > .inner, .row--tight > .inner, .row--tighter > .inner { padding-top: 56px; padding-bottom: 56px; }
   .grid--4 { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .cluster--stack { flex-direction: column; align-items: stretch; gap: 12px; }

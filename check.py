@@ -3,11 +3,12 @@
 
     python3 check.py [_site] [--drafts]
 
-Every HTML page: balanced tags, no duplicate ids, a title, a description, exactly one h1, internal links, assets and
-anchors that resolve, no leftover [PLACEHOLDER] text, and the framework's name spelled out.
+Every HTML page: balanced tags, no duplicate ids, a title, a description, exactly one h1, internal links, assets
+(src, srcset, style url()) and anchors that resolve, no leftover [PLACEHOLDER] text, and the framework's name spelled out.
+Every stylesheet: internal url() targets, such as the fonts, that resolve.
 Every .atom and .xml file: well-formed, links on the site's origin resolve, and feed text follows the same rules.
 Every built file and every tracked source file: none of the owner's private forbidden terms.
-Every image: no embedded metadata.
+Every image (JPEG, PNG, WebP, AVIF): no embedded metadata.
 """
 import os
 import re
@@ -27,6 +28,11 @@ PLACEHOLDER = re.compile(r"\[[A-Z][A-Z0-9_ ,.'-]{2,}(?::[^\]\n]*)?\]")
 STYLE_URL = re.compile(r"url\(\s*['\"]?([^'\")]+)['\"]?\s*\)")
 TEXT_ATTRS = ("alt", "aria-label", "title", "content")
 ATOM = "http://www.w3.org/2005/Atom"
+
+
+def srcset_urls(value: str):
+    """The URL of each candidate in a srcset ("a.avif 400w, b.avif 800w"). The site's URLs carry no commas."""
+    return [part.split()[0] for part in value.split(",") if part.strip()]
 
 
 def forbidden_terms():
@@ -56,6 +62,8 @@ class Page(HTMLParser):
         for key in ("href", "src"):
             if a.get(key):
                 self.links.append(a[key])
+        for key in ("srcset", "imagesrcset"):
+            self.links.extend(srcset_urls(a.get(key) or ""))
         self.links.extend(STYLE_URL.findall(a.get("style") or ""))
         self.attr_text.extend(a[k] for k in TEXT_ATTRS if a.get(k))
         if tag == "meta" and a.get("name") == "description":
@@ -93,6 +101,8 @@ METADATA_MARKERS = {
     ".jpeg": (b"Exif\x00\x00", b"http://ns.adobe.com/xap/1.0/"),
     ".png": (b"eXIf", b"XML:com.adobe.xmp"),
     ".webp": (b"EXIF", b"XMP "),
+    # HEIF items: an Exif item, or XMP as a mime item
+    ".avif": (b"Exif", b"application/rdf+xml", b"http://ns.adobe.com/xap/1.0/"),
 }
 
 
@@ -147,23 +157,22 @@ def check(site: Path, drafts: bool = False):
             say("the framework's name must be spelled out (three-letter acronym found)")
 
         for link in page.links:
-            url = urlparse(link)
-            if url.scheme or link.startswith("//"):
+            target = _resolve(site, path, link)
+            if target is None:
                 continue
-            if url.path == "":
-                target = path
-            elif url.path.startswith("/"):
-                target = site / unquote(url.path).lstrip("/")
-            else:
-                target = (path.parent / unquote(url.path)).resolve()
-            if target.is_dir():
-                target = target / "index.html"
+            fragment = urlparse(link).fragment
             if not target.exists():
                 say(f"broken link {link!r}")
-            elif url.fragment and target.suffix == ".html":
+            elif fragment and target.suffix == ".html":
                 other = parsed.get(target.resolve())
-                if other and url.fragment not in other.ids:
+                if other and fragment not in other.ids:
                     say(f"missing anchor {link!r}")
+
+    for path in sorted(site.rglob("*.css")):
+        for link in STYLE_URL.findall(path.read_text(encoding="utf-8")):
+            target = _resolve(site, path, link)
+            if target is not None and not target.exists():
+                problems.append(f"{path.relative_to(site).as_posix()}: broken url() {link!r}")
     return problems + check_xml(site, drafts)
 
 
@@ -212,6 +221,20 @@ def check_xml(site: Path, drafts: bool = False):
                 if url.fragment not in page.ids:
                     say(f"missing anchor {href!r}")
     return problems
+
+
+def _resolve(site: Path, path: Path, link: str):
+    """The built file an internal link from `path` points at, or None for an external or data: URL."""
+    url = urlparse(link)
+    if url.scheme or link.startswith("//"):
+        return None
+    if url.path == "":
+        target = path
+    elif url.path.startswith("/"):
+        target = site / unquote(url.path).lstrip("/")
+    else:
+        target = (path.parent / unquote(url.path)).resolve()
+    return target / "index.html" if target.is_dir() else target
 
 
 def check_sources(root: Path = ROOT):

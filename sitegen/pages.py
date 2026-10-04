@@ -17,11 +17,28 @@ ABOUT = ("I&rsquo;m a staff electrical engineer in grid-scale energy storage. My
          "you&rsquo;re watching. And when I get something wrong, it goes on a public corrections ledger.")
 
 
-def _portrait(ctx, mod=""):
-    """The portrait is optional: drop static/img/portrait.jpg in and it appears."""
-    if not (Path(ctx.site["_root"]) / "static" / "img" / "portrait.jpg").is_file():
+# Raster masters in static/img/ and the copies tools/make_assets.py makes of them.
+HERO = "img/field-bed"
+PORTRAIT = "img/portrait"
+PORTRAIT_WIDTHS = (200, 400, 640, 768)
+
+
+def hero_preload(ctx):
+    return f'<link rel="preload" as="image" href="{ctx.to(HERO + ".avif")}" type="image/avif" fetchpriority="high">\n'
+
+
+def _portrait(ctx, mod="", sizes="200px", lazy=True):
+    """The portrait is optional: drop static/img/portrait.jpg in, run tools/make_assets.py, and it appears.
+    Lazy only where it starts below the fold; above it, it is the page's largest paint."""
+    if not (Path(ctx.site["_root"]) / "static" / f"{PORTRAIT}.jpg").is_file():
         return ""
-    return f'<img class="portrait {mod}" src="{ctx.to("img/portrait.jpg")}" alt="{esc(ctx.site["author"])}" width="400" height="500">'
+    sources = "".join(
+        f'<source type="image/{ext}" sizes="{sizes}" srcset="'
+        + ", ".join(f'{ctx.to(f"{PORTRAIT}-{w}.{ext}")} {w}w' for w in PORTRAIT_WIDTHS) + '">'
+        for ext in ("avif", "webp"))
+    loading = ' loading="lazy"' if lazy else ' fetchpriority="high"'
+    return (f'<picture>{sources}<img class="portrait {mod}" src="{ctx.to(PORTRAIT + ".jpg")}" alt="{esc(ctx.site["author"])}" '
+            f'width="400" height="500"{loading} decoding="async"></picture>')
 
 
 def _badge(ep):
@@ -46,7 +63,9 @@ def home(ctx: Ctx):
         actions = btn("Subscribe on YouTube", ctx.sub_url, external=True) + arrow("The notes repo", s["notes_repo"], external=True)
         status = f'<div class="g28">{kicker(upcoming.serial + " is in production", "kicker--orange")}</div>' if upcoming else ""
 
-    hero = (f'<div class="band" style="background-image: url({ctx.to("img/field-bed.png")});">'
+    banner = (f"background-image: url({ctx.to(HERO + '.png')}); background-image: image-set(url({ctx.to(HERO + '.avif')}) "
+              f"type('image/avif'), url({ctx.to(HERO + '.webp')}) type('image/webp'), url({ctx.to(HERO + '.png')}) type('image/png'));")
+    hero = (f'<div class="band" style="{banner}">'
             f'<img src="{ctx.to("img/mark-banner-halo.svg")}" width="236" height="236" '
             f'alt="Channel logo: a Smith chart with a three-lobed closed curve inside it"></div>'
             f'<div class="plate-block">{kicker("The Electron Plumber")}<hr class="rule rule--plate g20">'
@@ -110,7 +129,7 @@ def home(ctx: Ctx):
                           f'<div class="g28">{arrow("The speculative program", ctx.to("research/"), "arrow--orange")}</div>'),
                      "row--tighter", rail=badge("speculative"), heading=True)
 
-    return page(ctx, title=s["title"], active=None,
+    return page(ctx, title=s["title"], active=None, preload=hero_preload(ctx),
                 description="One question, pursued honestly: What is an Electron? History told from the original papers, "
                             "speculation labeled as speculation, and shop practice.",
                 body=hero + orient + episode_row + author_row + records_row + disclosure + subscribe(ctx))
@@ -346,6 +365,29 @@ def _episode_links(ctx, ev):
     return f'<p class="small tl__episodes">In {"; ".join(out)}</p>' if out else ""
 
 
+def _credit(img):
+    """The approved credit line for each licence. It is always shown, public domain included."""
+    commons = f'<a href="{esc(img.source_url)}">Wikimedia Commons</a>'
+    if img.license == "own-work":
+        return "Diagram: The Electron Plumber."
+    if img.license == "public-domain":
+        return f"Image: {esc(img.author)}. Public domain, via {commons}."
+    if img.license == "cc0":
+        return f"Image: {esc(img.author)}. Dedicated to the public domain (CC0), via {commons}."
+    return (f"Image: {esc(img.title)}, by {esc(img.author)}. Cropped and resized. Licensed under "
+            f'<a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0</a>, via {commons}.')
+
+
+def _figure(ctx, img):
+    """Self-hosted and lazy; width and height are the file's pixels, so the space is reserved before it loads."""
+    if img is None:
+        return ""
+    caption = f"{esc(img.caption)} " if img.caption else ""
+    return (f'<figure class="tl__figure"><img src="{ctx.to(img.file.removeprefix("static/"))}" width="{img.width}" '
+            f'height="{img.height}" alt="{esc(img.alt)}" loading="lazy" decoding="async">'
+            f'<figcaption class="mono small">{caption}<span class="tl__credit">{_credit(img)}</span></figcaption></figure>')
+
+
 def _era_bounds(slug):
     """data-from/data-to on an era chip, for the axis site.js draws; an empty data-to is an open end."""
     _, first, last = content.ERAS[slug]
@@ -394,7 +436,7 @@ def history(ctx: Ctx):
                   f'data-class="{esc(ev.cls)}" data-verified="{esc(ev.verified)}" data-year="{ev.sort_key[0]}"{oneliner}><article>'
                   f'<p class="mono tl__date">{_when(ev)}</p>'
                   f'<h3 class="h3 tl__title"><a href="#{esc(ev.id)}">{md.plain(ev.title)}</a></h3>'
-                  f'<p class="mono tl__meta">{meta}</p>'
+                  f'<p class="mono tl__meta">{meta}</p>{_figure(ctx, ev.image)}'
                   f'<p class="small tl__summary">{md.plain(ev.summary)}</p>{people}'
                   f'<ol class="tl__sources">{sources}</ol>'
                   f'<p class="mono tl__checked">Checked {_time(ev.checked_date)}</p>'
@@ -565,7 +607,8 @@ ABOUT_DESCRIPTION = "{author} is a staff electrical engineer in grid-scale energ
 
 def about(ctx: Ctx):
     s = ctx.site
-    head = (f'<div class="about-head">{_portrait(ctx, "portrait--lg")}<div class="stack">{kicker("About")}'
+    portrait = _portrait(ctx, "portrait--lg", sizes="(max-width: 860px) min(400px, 88vw), min(400px, 32vw)", lazy=False)
+    head = (f'<div class="about-head">{portrait}<div class="stack">{kicker("About")}'
             f'<h1 class="h1 h1--page g16">{esc(s["author"])}</h1><div class="tagline g20">{esc(s["tagline"])}</div>'
             f'<p class="prose g32">{ABOUT}</p><div class="mono g24">Views my own.</div>'
             f'<div class="g24">{arrow(START_TITLE, ctx.to("start/"))}</div></div></div>')
