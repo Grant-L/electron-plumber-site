@@ -346,6 +346,29 @@ def _episode_links(ctx, ev):
     return f'<p class="small tl__episodes">In {"; ".join(out)}</p>' if out else ""
 
 
+def _credit(img):
+    """The approved credit line for each licence. It is always shown, public domain included."""
+    commons = f'<a href="{esc(img.source_url)}">Wikimedia Commons</a>'
+    if img.license == "own-work":
+        return "Diagram: The Electron Plumber."
+    if img.license == "public-domain":
+        return f"Image: {esc(img.author)}. Public domain, via {commons}."
+    if img.license == "cc0":
+        return f"Image: {esc(img.author)}. Dedicated to the public domain (CC0), via {commons}."
+    return (f"Image: {esc(img.title)}, by {esc(img.author)}. Cropped and resized. Licensed under "
+            f'<a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0</a>, via {commons}.')
+
+
+def _figure(ctx, img):
+    """Self-hosted and lazy; width and height are the file's pixels, so the space is reserved before it loads."""
+    if img is None:
+        return ""
+    caption = f"{esc(img.caption)} " if img.caption else ""
+    return (f'<figure class="tl__figure"><img src="{ctx.to(img.file.removeprefix("static/"))}" width="{img.width}" '
+            f'height="{img.height}" alt="{esc(img.alt)}" loading="lazy" decoding="async">'
+            f'<figcaption class="mono small">{caption}<span class="tl__credit">{_credit(img)}</span></figcaption></figure>')
+
+
 def _era_bounds(slug):
     """data-from/data-to on an era chip, for the axis site.js draws; an empty data-to is an open end."""
     _, first, last = content.ERAS[slug]
@@ -394,7 +417,7 @@ def history(ctx: Ctx):
                   f'data-class="{esc(ev.cls)}" data-verified="{esc(ev.verified)}" data-year="{ev.sort_key[0]}"{oneliner}><article>'
                   f'<p class="mono tl__date">{_when(ev)}</p>'
                   f'<h2 class="h3 tl__title"><a href="#{esc(ev.id)}">{esc(ev.title)}</a></h2>'
-                  f'<p class="mono tl__meta">{meta}</p>'
+                  f'<p class="mono tl__meta">{meta}</p>{_figure(ctx, ev.image)}'
                   f'<p class="small tl__summary">{md.inline(ev.summary)}</p>{people}'
                   f'<ol class="tl__sources">{sources}</ol>'
                   f'<p class="mono tl__checked">Checked {_time(ev.checked_date)}</p>'

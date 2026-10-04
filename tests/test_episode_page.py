@@ -1,9 +1,8 @@
 import re
-import shutil
 from html.parser import HTMLParser
 
 import pytest
-from conftest import EP1_SOURCE, NOTES, PUBLISHED_EP1, ROOT, errata_entry, fixture_errata
+from conftest import EP1_SOURCE, NOTES, PUBLISHED_EP1, ROOT, copy_static, errata_entry, fixture_errata
 
 import build
 import check
@@ -306,7 +305,7 @@ def test_a_drafts_build_of_an_episode_with_no_arc_yet_shows_no_badge(tmp_path, t
     write(timeline_root, episodes=IN_PRODUCTION)
     (timeline_root / "_private" / "drafts").mkdir(parents=True)
     (timeline_root / "_private" / "drafts" / "001-x.md").write_text(NOTES, encoding="utf-8")
-    shutil.copytree(ROOT / "static", timeline_root / "static")
+    copy_static(timeline_root)
     build.build(tmp_path / "out", drafts=True, root=timeline_root)
     for page in ("index.html", "episodes/index.html", "episodes/001-x/index.html"):
         assert 'badge--"' not in (tmp_path / "out" / page).read_text(encoding="utf-8")
