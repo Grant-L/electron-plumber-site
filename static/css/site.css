@@ -325,6 +325,10 @@ a.trow:hover .trow__name { color: var(--sky); }
 .footer__col a:hover { color: var(--fg); }
 .footer__legal { display: flex; flex-wrap: wrap; gap: 8px 40px; padding-top: 8px; }
 .footer__legal .mono { font-size: 12px; }
+/* 44px to tap, in the same room. */
+@media (pointer: coarse) {
+  .footer__legal a { min-width: 44px; padding: 11px 7px; margin: -11px -7px; }
+}
 
 /* ------------------------------------------------------------ 404 */
 .lost { min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 96px var(--pad); }
