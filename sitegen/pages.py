@@ -159,6 +159,71 @@ def episodes(ctx: Ctx):
 
 
 # ------------------------------------------------------------------ EPISODE
+CORRECTIONS_FALLBACK = ('<p>Standing corrections for all episodes are tracked in ERRATA.md. Spotted an error? Open an issue &mdash; '
+                        'corrections are part of the product here, not an embarrassment.</p>')
+CLAIMS_INTRO = "Tracked claims from this episode that the History page or the corrections ledger points to."
+VEHICLES = {"description": "Description edit", "pinned-comment": "Pinned comment", "erratum-short": "Erratum short"}
+LEDGER_COLUMNS = ("Claim", "What I said", "What&rsquo;s right", "Fixed in")
+# The column heads are hidden on phones by site.css, and from assistive technology here: each cell carries its own label.
+LEDGER_HEAD = '<div class="ledger__head" aria-hidden="true">' + "".join(f"<div>{c}</div>" for c in LEDGER_COLUMNS) + "</div>"
+
+
+def _claim_note(claims, href=""):
+    links = ", ".join(f'<a href="{href}#{esc(c)}">{esc(c)}</a>' for c in claims)
+    return f" ({'claims' if len(claims) > 1 else 'claim'} {links})" if claims else ""
+
+
+def _episode_sources(ep):
+    if not ep.sources:
+        return ""
+    items = "".join(_citation(s.entry, s) for s in ep.sources)
+    return f'<section class="block" id="ep-sources"><h2>Sources</h2><ol class="tl__sources">{items}</ol></section>'
+
+
+def _episode_claims(ctx, ep):
+    if not ep.claims:
+        return ""
+    items = ""
+    for claim in ep.claims:
+        cors = [c for c in ep.corrections if c.claim == claim]  # newest first, so cors[0] sets the status
+        parts = [f"<code>{esc(claim)}</code>", content.CORRECTION_KINDS[cors[0].kind] if cors else "As aired"]
+        events = [ev for ev in ep.events if claim in ev.claims]
+        if events:
+            parts.append("On the History page: " + ", ".join(
+                f'<a href="{ctx.to("history/")}#{esc(ev.id)}">{esc(ev.title)}</a>' for ev in events))
+        if cors:
+            parts.append(", ".join(f'<a href="#{esc(c.id)}">{esc(c.id)}</a>' for c in cors))
+        items += f'<li id="{esc(claim)}">{" &middot; ".join(parts)}</li>'
+    return (f'<section class="block" id="ep-claims"><h2>Claims</h2><p>{CLAIMS_INTRO}</p>'
+            f'<ul class="ep-claims">{items}</ul></section>')
+
+
+def _episode_history(ctx, ep):
+    if not ep.events:
+        return ""
+    prefix = f"ep{ep.number:03d}-"
+    items = "".join(
+        f'<li>{_when(ev)} <a href="{ctx.to("history/")}#{esc(ev.id)}">{esc(ev.title)}</a>'
+        f'{_claim_note([c for c in ev.claims if c.startswith(prefix)])}</li>' for ev in ep.events)
+    return f'<section class="block" id="ep-history"><h2>On the History page</h2><ul class="ep-history">{items}</ul></section>'
+
+
+def _ledger_row(ctx, cor, *, link_episode=False):
+    """One corrections-ledger row. On the episode page the claim links within the page; elsewhere, to the episode."""
+    by_number = {e.number: e for e in ctx.episodes}
+    href = (ctx.to(by_number[cor.episode].url) if link_episode else "") + "#" + cor.claim
+    segment = content.VEHICLE.fullmatch(cor.vehicle).group(1)
+    if segment:
+        seg = by_number[int(segment)]
+        vehicle = "Segment in " + (f'<a href="{ctx.to(seg.url)}">{esc(seg.serial)}</a>' if seg.live else esc(seg.serial))
+    else:
+        vehicle = VEHICLES[cor.vehicle]
+    fixed = f"{vehicle} &middot; {_time(cor.date)} &middot; {content.CORRECTION_KINDS[cor.kind]}"
+    cells = zip(LEDGER_COLUMNS, (f'<a href="{esc(href)}">{esc(cor.claim)}</a>', cor.was, cor.now, fixed), strict=True)
+    return (f'<div class="ledger__row" id="{esc(cor.id)}">'
+            + "".join(f'<div><span class="vh">{label}</span> {text}</div>' for label, text in cells) + "</div>")
+
+
 def episode(ctx: Ctx, ep):
     meta = " &middot; ".join((esc(ep.date) or "[DATE]", esc(ep.runtime) or "[RUNTIME]"))
     head = (f'<div class="post-head">{arrow("All episodes", ctx.to("episodes/"), back=True)}'
@@ -167,14 +232,19 @@ def episode(ctx: Ctx, ep):
             + (f'<p class="deck deck--sm g20">{esc(ep.orientation)}</p>' if ep.orientation else "") + '</div>')
     video = f'<div class="post-video">{card(ctx, ep.serial, ep.title, youtube_id=ep.youtube_id)}</div>'
 
-    blocks, have = "", set()
+    blocks, corrections = "", ("Corrections", CORRECTIONS_FALLBACK)
     for title, body in ep.sections:
         anchor = "-".join(title.lower().split())
-        have.add(anchor)
+        if anchor == "corrections":
+            corrections = (title, body)
+            continue
         blocks += f'<section class="block" id="{esc(anchor)}"><h2>{esc(title)}</h2>{body}</section>'
-    if "corrections" not in have:
-        blocks += ('<section class="block" id="corrections"><h2>Corrections</h2><p>Standing corrections for all episodes are tracked in ERRATA.md. '
-                   'Spotted an error? Open an issue &mdash; corrections are part of the product here, not an embarrassment.</p></section>')
+    blocks += _episode_sources(ep) + _episode_claims(ctx, ep) + _episode_history(ctx, ep)
+    # Ledger rows, when there are any, stand in for the notes' own corrections text: the ledger is the record.
+    rows = "".join(_ledger_row(ctx, cor) for cor in ep.corrections)
+    title, body = corrections
+    blocks += (f'<section class="block" id="corrections"><h2>{esc(title)}</h2>'
+               f'{LEDGER_HEAD + rows if rows else body}</section>')
     report = f'<div class="g8">{arrow("Report an error", ctx.site["notes_repo"] + "/issues", external=True)}</div>'
     article = f'<article class="article">{blocks}{report}<div class="g48"></div></article>'
 
@@ -272,8 +342,7 @@ def _episode_links(ctx, ev):
     out = []
     for number, claims in linked.items():
         ep = by_number[number]
-        note = f" ({'claims' if len(claims) > 1 else 'claim'} {', '.join(claims)})" if claims else ""
-        out.append(f'<a href="{ctx.to(ep.url)}">{esc(ep.serial)}</a>{esc(note)}')
+        out.append(f'<a href="{ctx.to(ep.url)}">{esc(ep.serial)}</a>{_claim_note(claims, ctx.to(ep.url))}')
     return f'<p class="small tl__episodes">In {"; ".join(out)}</p>' if out else ""
 
 

@@ -285,6 +285,11 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .block pre { overflow-x: auto; padding: 20px 24px; background: var(--panel); border: 1px solid var(--line); font-family: var(--mono); font-size: 14px; line-height: 1.6; color: var(--fg); margin-top: 16px; }
 .block pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 .block blockquote { padding-left: 20px; border-left: 2px solid var(--sky); color: var(--fg); margin-top: 16px; }
+.ep-claims li, .ledger__row[id] { scroll-margin-top: 24px; }
+.block .ledger__head, .block .ledger__row { grid-template-columns: minmax(0, 16fr) minmax(0, 32fr) minmax(0, 32fr) minmax(0, 20fr); column-gap: 16px; }
+.block .ledger__row { font-size: 16px; }
+.ledger__row div:first-child a { color: inherit; }
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .next-band { border-top: 1px solid var(--line); }
 .next-band a { width: min(960px, 100% - 2 * var(--pad)); margin: 0 auto; padding: 64px 0; display: flex; align-items: center; justify-content: space-between; gap: 24px; text-decoration: none; }
 .next-band__title { font-size: clamp(24px, 2.5vw, 36px); line-height: 1.2; color: var(--orange); }
@@ -377,6 +382,10 @@ a.trow:hover .trow__name { color: var(--sky); }
   .trow__name, .trow__name--sm, .trow__badge, .trow__status, .trow__kind { width: auto; text-align: left; }
   .ledger__head { display: none; }
   .ledger__row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .block .ledger__row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  /* With the column heads hidden, each episode-ledger cell shows its own label. */
+  .block .ledger__row .vh { position: static; display: block; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal;
+    font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); line-height: 20px; }
   .footer__plate { flex-direction: column; align-items: flex-start; gap: 20px; }
   .footer__plate img { width: 72px; height: 72px; }
   .next-band a { flex-direction: column; align-items: flex-start; padding: 48px 0; }
