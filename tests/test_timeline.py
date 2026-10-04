@@ -643,11 +643,11 @@ def test_the_export_refuses_a_placeholder_in_a_oneliner(timeline_root):
         ex.guard([event])
 
 
-def test_data_oneliner_renders_escaped_and_only_when_present(timeline_root):
-    html = render(timeline_root, with_oneliner(EVENT, '"Rods & \\"rings\\" turn."'))
+def test_data_oneliner_renders_typographic_escaped_and_only_when_present(timeline_root):
+    html = render(timeline_root, with_oneliner(EVENT, '"Kelvin\'s rods & \\"rings\\" turn."'))
     assert '<li class="tl" id="1843-hamilton-quaternions"' in html
-    assert 'data-year="1843" data-oneliner="Rods &amp; &quot;rings&quot; turn."><article>' in html
-    assert parse(html).items[0]["data-oneliner"] == 'Rods & "rings" turn.'
+    assert 'data-year="1843" data-oneliner="Kelvin\u2019s rods &amp; \u201crings\u201d turn."><article>' in html
+    assert parse(html).items[0]["data-oneliner"] == "Kelvin\u2019s rods & \u201crings\u201d turn."
     without = render(timeline_root, EVENT)
     assert "data-oneliner" not in without
     assert AXIS_ATTRS.sub("", without).count(GOLDEN_LI) == 1
