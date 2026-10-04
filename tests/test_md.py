@@ -69,7 +69,39 @@ def test_quotes_after_emphasis_markers_open_correctly():
     assert md.inline('*"hello"*') == "<em>\u201chello\u201d</em>"
 
 
-@pytest.mark.parametrize("source", ["---\n", "~~~\ncode\n~~~\n", "##### five\n", "+ item\n", "1) item\n", "![alt](img.png)\n", "a | b\n--|--\n"])
+UNSUPPORTED = ["---\n", "~~~\ncode\n~~~\n", "##### five\n", "+ item\n", "1) item\n", "![alt](img.png)\n", "a | b\n--|--\n",
+               "| a | b |\n"]
+
+
+def _prefixed(prefix, source):
+    return "".join(prefix + line + "\n" for line in source.splitlines())
+
+
+@pytest.mark.parametrize("source", UNSUPPORTED
+                         + [_prefixed("> ", s) for s in UNSUPPORTED]
+                         + [_prefixed("- ", s) for s in UNSUPPORTED]
+                         + ["- ok\n" + _prefixed("  ", s) for s in UNSUPPORTED])
 def test_more_unsupported_markdown_fails_loudly(source):
     with pytest.raises(md.MarkdownError):
         md.render(source)
+
+
+def test_plain_gives_typographic_quotes_and_escapes():
+    assert md.plain('It\'s "x"') == "It\u2019s \u201cx\u201d"
+    assert md.plain("a < b & c") == "a &lt; b &amp; c"
+
+
+def test_plain_leaves_markdown_characters_literal():
+    out = md.plain("*x* _y_ **z** `c` [l](u)")
+    assert out == "*x* _y_ **z** `c` [l](u)" and "<em>" not in out and "<strong>" not in out
+
+
+def test_plain_is_safe_in_a_quoted_attribute():
+    out = md.plain('say "hi" to <b> & \'you\'')
+    assert '"' not in out and "'" not in out and "<" not in out
+
+
+def test_supported_text_in_quotes_and_lists_still_renders():
+    out = md.render("> A *quote* with a | pipe.\n\n- An item, 1. not a list\n  and a continuation with `|code|`\n")
+    assert "<blockquote><p>A <em>quote</em> with a | pipe.</p></blockquote>" in out
+    assert "<li>An item, 1. not a list and a continuation with <code>|code|</code></li>" in out

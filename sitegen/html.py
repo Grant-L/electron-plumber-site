@@ -1,6 +1,7 @@
 """Page shell and the shared components: header, footer (the spec plate), badges, buttons, the title card."""
 import html as _html
 
+from . import md
 from .content import ARCS
 
 # Self-hosted from /fonts/ (made by tools/make_assets.py). This one sets the body text and the h1, so it is preloaded;
@@ -28,9 +29,9 @@ def esc(text):
 class Ctx:
     """Everything a template needs, plus link helpers that stay relative so the site works from any base path."""
 
-    def __init__(self, site, episodes, path, version, absolute=False, timeline=(), errata=(), start=()):
+    def __init__(self, site, episodes, path, version, absolute=False, timeline=(), errata=(), start=(), research=None):
         self.site, self.episodes, self.path, self.version = site, episodes, path, version
-        self.timeline, self.errata, self.start = timeline, errata, start
+        self.timeline, self.errata, self.start, self.research = timeline, errata, start, research
         depth = path.count("/")
         self.root = "/" if absolute else ("../" * depth if depth else "./")
 
@@ -83,7 +84,7 @@ def arrow(text, href, mod="", external=False, back=False):
 def card(ctx, serial, title, *, youtube_id="", dim=False, nxt=False):
     """The video title card: mark, wordmark, hairline, the job, serial. With a video id it becomes a click-to-load player;
     without one it is decoration beside a real heading, so it is hidden from assistive technology."""
-    serial, title, video = esc(serial), esc(title), esc(youtube_id)
+    serial, title, video = esc(serial), md.plain(title), esc(youtube_id)
     mods = (" card--dim" if dim else "") + (" card--next" if nxt else "")
     data = f' data-youtube="{video}" data-title="{serial}: {title}"' if youtube_id else ""
     hidden = "" if youtube_id else ' aria-hidden="true"'
@@ -97,9 +98,15 @@ def card(ctx, serial, title, *, youtube_id="", dim=False, nxt=False):
             f'<div class="card__title">{title}</div><div class="card__serial">{serial}</div></div>{play}</div>')
 
 
-def row(label, body, mod="", rail=None):
-    """A spec-sheet row: mono label in the left rail, content to its right."""
-    rail_html = rail if rail is not None else (kicker(label) if label else "")
+def row(label, body, mod="", rail=None, heading=False):
+    """A spec-sheet row: mono label in the left rail, content to its right. With heading=True the rail is the
+    section's h2, for a row whose body has no heading of its own; it looks the same as the plain rail."""
+    if heading and rail is not None:
+        rail_html = f'<h2 class="row__h">{rail}</h2>'
+    elif heading and label:
+        rail_html = f'<h2 class="kicker">{label}</h2>'
+    else:
+        rail_html = rail if rail is not None else (kicker(label) if label else "")
     return (f'<section class="row {mod}"><div class="inner"><div class="row__rail">{rail_html}</div>'
             f'<div class="row__body">{body}</div></div></section>')
 
@@ -167,14 +174,14 @@ def page(ctx, *, title, description, body, active=None, arc=None, noindex=False,
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{esc(full_title)}</title>
+<title>{md.plain(full_title)}</title>
 <meta name="description" content="{esc(description)}">
 {robots}<link rel="canonical" href="{esc(url)}">
 <meta name="theme-color" content="#0e1116">
 <meta name="color-scheme" content="dark">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{esc(s['title'])}">
-<meta property="og:title" content="{esc(full_title)}">
+<meta property="og:title" content="{md.plain(full_title)}">
 <meta property="og:description" content="{esc(description)}">
 <meta property="og:url" content="{esc(url)}">
 <meta property="og:image" content="{esc(s['url'].rstrip('/'))}/img/social-share.png">

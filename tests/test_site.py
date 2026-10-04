@@ -115,6 +115,31 @@ def test_images_with_metadata_are_refused(tmp_path):
     assert any("metadata" in p for p in check.check(tmp_path / "site"))
 
 
+def test_the_question_is_cased_what_is_an_electron_everywhere(tmp_path):
+    import re
+    build.build(tmp_path / "site")
+    seen = 0
+    for page in (tmp_path / "site").rglob("*.html"):
+        text = re.sub(r"<[^>]+>", " ", page.read_text(encoding="utf-8"))
+        hits = re.findall(r"what is an electron\?", text, re.I)
+        assert all(h == "What is an Electron?" for h in hits), page
+        seen += len(hits)
+    assert seen and "What is an electron?" not in (tmp_path / "site" / "index.html").read_text(encoding="utf-8")
+
+
+def test_the_unused_hero_mark_is_not_deployed(tmp_path):
+    import re
+    assert not (ROOT / "static" / "img" / "mark-hero.svg").exists()
+    build.build(tmp_path / "site")
+    for path in (tmp_path / "site").rglob("*"):
+        if path.is_file() and path.suffix in (".html", ".css", ".js", ".xml", ".atom", ".svg"):
+            assert "mark-hero" not in path.read_text(encoding="utf-8"), path
+    # make_mark.py needs matplotlib, so read it rather than import it.
+    script = (ROOT / "design" / "make_mark.py").read_text(encoding="utf-8")
+    copies = re.search(r'for cut in \(([^)]*)\):\n\s+\(STATIC / "img"', script)
+    assert copies and '"hero"' not in copies.group(1)
+
+
 @pytest.mark.parametrize("payload", [b"\x00\x00\x00\x15infe\x02\x00\x00\x00\x00\x01\x00\x00Exif\x00",
                                      b"mime\x00application/rdf+xml\x00"])
 def test_avif_with_metadata_is_refused(tmp_path, payload):

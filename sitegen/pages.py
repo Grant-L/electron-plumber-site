@@ -6,12 +6,12 @@ from .html import RECORDS, Ctx, arrow, badge, btn, card, esc, kicker, mono, page
 
 DECK = "We know what it <em>does</em> to a part in a trillion. Nobody knows what it <em>is</em>."
 QUOTE_AUTHOR = ("&ldquo;I&rsquo;m an EE who calls myself an electron plumber. The channel is one question, pursued honestly: "
-                "what is an electron?&rdquo;")
+                "What is an Electron?&rdquo;")
 RESEARCH_HANDOFF = ("I work on a model of the vacuum. It&rsquo;s unproven. The Research page says what would kill it, "
                     "and which of its laws already lost.")
 ABOUT = ("I&rsquo;m a staff electrical engineer in grid-scale energy storage. My job is finding out why real circuits "
          "fail &mdash; megawatts on the line, root cause or nothing, no partial credit. This channel points that same "
-         "discipline at a question nobody can answer: what is an electron? We know what it <em>does</em> to a part in a "
+         "discipline at a question nobody can answer: What is an Electron? We know what it <em>does</em> to a part in a "
          "trillion. Nobody knows what it <em>is</em>. I make three kinds of video &mdash; history, told faithfully from "
          "the original papers; speculation, labeled as speculation; and shop practice. You&rsquo;ll always know which one "
          "you&rsquo;re watching. And when I get something wrong, it goes on a public corrections ledger.")
@@ -48,7 +48,7 @@ def _badge(ep):
 
 def _next_line(ctx, ep):
     return (f'<hr class="rule rule--line g40"><div class="between g28"><div class="stack">'
-            f'{kicker("Next &middot; " + ep.serial, "kicker--orange")}<div class="next__title g8">{esc(ep.title)}</div>'
+            f'{kicker("Next &middot; " + ep.serial, "kicker--orange")}<div class="next__title g8">{md.plain(ep.title)}</div>'
             f'<div class="mono g8">In production</div></div>{_badge(ep)}</div>')
 
 
@@ -69,7 +69,7 @@ def home(ctx: Ctx):
             f'<img src="{ctx.to("img/mark-banner-halo.svg")}" width="236" height="236" '
             f'alt="Channel logo: a Smith chart with a three-lobed closed curve inside it"></div>'
             f'<div class="plate-block">{kicker("The Electron Plumber")}<hr class="rule rule--plate g20">'
-            f'<h1 class="h1 h1--hero g36">What is an electron?</h1><p class="deck g24">{DECK}</p>'
+            f'<h1 class="h1 h1--hero g36">What is an Electron?</h1><p class="deck g24">{DECK}</p>'
             f'<div class="g20">{arrow(START_TITLE, ctx.to("start/"))}</div>'
             f'<div class="mono mono--sky g28">{esc(s["tagline"])}</div>{status}'
             f'<div class="cluster cluster--stack g40">{actions}</div></div>')
@@ -94,7 +94,7 @@ def home(ctx: Ctx):
     if latest:
         meta = f'{kicker(latest.serial, "kicker--white")}{badge(latest.arc)}{mono(esc(latest.date) or "[DATE]")}'
         body = (f'<div class="latest"><div class="latest__card">{card(ctx, latest.serial, latest.title, youtube_id=latest.youtube_id)}</div>'
-                f'<div class="stack"><div class="cluster cluster--tight">{meta}</div><h2 class="h2 g16">{esc(latest.title)}</h2>'
+                f'<div class="stack"><div class="cluster cluster--tight">{meta}</div><h2 class="h2 g16">{md.plain(latest.title)}</h2>'
                 f'<p class="small g16">{esc(latest.excerpt)}</p><div class="cluster g28">{btn("Watch", ctx.to(latest.url))}'
                 f'{arrow("Episode notes", ctx.to(latest.url) + "#learning-goals")}</div></div></div>'
                 + (_next_line(ctx, upcoming) if upcoming else ""))
@@ -102,7 +102,7 @@ def home(ctx: Ctx):
     elif upcoming:
         body = (f'<div class="latest"><div class="latest__card">{card(ctx, upcoming.serial, upcoming.title, dim=True, nxt=True)}</div>'
                 f'<div class="stack"><div class="cluster cluster--tight">{kicker("Next &middot; " + upcoming.serial, "kicker--orange")}'
-                f'{_badge(upcoming)}</div><h2 class="h2 g16" style="color: var(--orange);">{esc(upcoming.title)}</h2>'
+                f'{_badge(upcoming)}</div><h2 class="h2 g16" style="color: var(--orange);">{md.plain(upcoming.title)}</h2>'
                 f'<div class="mono g16">In production</div>'
                 f'<div class="g28">{arrow("Subscribe on YouTube", ctx.sub_url, external=True)}</div></div></div>')
         episode_row = row("Next episode", body)
@@ -113,7 +113,7 @@ def home(ctx: Ctx):
         f'<div class="author">{_portrait(ctx)}<div class="stack"><div class="quote">{QUOTE_AUTHOR}</div>'
         f'<div class="name g28">{esc(s["author"])}</div>'
         f'<div class="mono">Staff electrical engineer, grid-scale energy storage. Views my own.</div>'
-        f'<div class="g12">{arrow("About", ctx.to("about/"))}</div></div></div>'))
+        f'<div class="g12">{arrow("About", ctx.to("about/"))}</div></div></div>'), heading=True)
 
     def record(label, text):
         return f'<div class="stack">{kicker(label, "kicker--sm")}<p class="small g12">{text}</p></div>'
@@ -127,10 +127,10 @@ def home(ctx: Ctx):
 
     disclosure = row("", (f'<div class="quote quote--lg">{RESEARCH_HANDOFF}</div>'
                           f'<div class="g28">{arrow("The speculative program", ctx.to("research/"), "arrow--orange")}</div>'),
-                     "row--tighter", rail=badge("speculative"))
+                     "row--tighter", rail=badge("speculative"), heading=True)
 
     return page(ctx, title=s["title"], active=None, preload=hero_preload(ctx),
-                description="One question, pursued honestly: what is an electron? History told from the original papers, "
+                description="One question, pursued honestly: What is an Electron? History told from the original papers, "
                             "speculation labeled as speculation, and shop practice.",
                 body=hero + orient + episode_row + author_row + records_row + disclosure + subscribe(ctx))
 
@@ -159,15 +159,15 @@ def episodes(ctx: Ctx):
     for ep in published:
         meta = f'{kicker(ep.serial, "kicker--white")}{badge(ep.arc)}{mono(" &middot; ".join((esc(ep.date) or "[DATE]", esc(ep.runtime) or "[RUNTIME]")))}'
         rows += (f'<article class="ep-row" data-arc="{ep.arc}"><div class="inner"><div class="ep-row__card">'
-                 f'<a href="{ctx.to(ep.url)}" aria-label="{esc(ep.serial)}: {esc(ep.title)}">{card(ctx, ep.serial, ep.title)}</a></div>'
-                 f'<div class="stack"><div class="cluster cluster--tight">{meta}</div><h2 class="h2 h2--row g16">{esc(ep.title)}</h2>'
+                 f'<a href="{ctx.to(ep.url)}" aria-label="{esc(ep.serial)}: {md.plain(ep.title)}">{card(ctx, ep.serial, ep.title)}</a></div>'
+                 f'<div class="stack"><div class="cluster cluster--tight">{meta}</div><h2 class="h2 h2--row g16">{md.plain(ep.title)}</h2>'
                  f'<p class="small g12">{esc(ep.excerpt)}</p><div class="cluster g24">{btn("Watch", ctx.to(ep.url))}'
                  f'{arrow("Episode notes", ctx.to(ep.url) + "#learning-goals")}</div></div></div></article>')
     if upcoming:
         arc_attr = f' data-arc="{upcoming.arc}"' if upcoming.arc else ""
         rows += (f'<article class="ep-row"{arc_attr}><div class="inner"><div class="ep-row__card">{card(ctx, upcoming.serial, upcoming.title, dim=True, nxt=True)}</div>'
                  f'<div class="stack"><div class="cluster cluster--tight">{kicker("Next &middot; " + upcoming.serial, "kicker--orange")}{_badge(upcoming)}</div>'
-                 f'<h2 class="h2 h2--row g16" style="color: var(--orange);">{esc(upcoming.title)}</h2>'
+                 f'<h2 class="h2 h2--row g16" style="color: var(--orange);">{md.plain(upcoming.title)}</h2>'
                  + (f'<p class="small g12">{esc(upcoming.excerpt)}</p>' if upcoming.excerpt else "")
                  + '<div class="mono g20">In production</div></div></div></article>')
     if not rows:
@@ -209,7 +209,7 @@ def _episode_claims(ctx, ep):
         events = [ev for ev in ep.events if claim in ev.claims]
         if events:
             parts.append("On the History page: " + ", ".join(
-                f'<a href="{ctx.to("history/")}#{esc(ev.id)}">{esc(ev.title)}</a>' for ev in events))
+                f'<a href="{ctx.to("history/")}#{esc(ev.id)}">{md.plain(ev.title)}</a>' for ev in events))
         if cors:
             parts.append(", ".join(f'<a href="#{esc(c.id)}">{esc(c.id)}</a>' for c in cors))
         items += f'<li id="{esc(claim)}">{" &middot; ".join(parts)}</li>'
@@ -222,7 +222,7 @@ def _episode_history(ctx, ep):
         return ""
     prefix = f"ep{ep.number:03d}-"
     items = "".join(
-        f'<li>{_when(ev)} <a href="{ctx.to("history/")}#{esc(ev.id)}">{esc(ev.title)}</a>'
+        f'<li>{_when(ev)} <a href="{ctx.to("history/")}#{esc(ev.id)}">{md.plain(ev.title)}</a>'
         f'{_claim_note([c for c in ev.claims if c.startswith(prefix)])}</li>' for ev in ep.events)
     return f'<section class="block" id="ep-history"><h2>On the History page</h2><ul class="ep-history">{items}</ul></section>'
 
@@ -247,7 +247,7 @@ def episode(ctx: Ctx, ep):
     meta = " &middot; ".join((esc(ep.date) or "[DATE]", esc(ep.runtime) or "[RUNTIME]"))
     head = (f'<div class="post-head">{arrow("All episodes", ctx.to("episodes/"), back=True)}'
             f'<div class="cluster cluster--tight g28">{kicker(ep.serial, "kicker--white")}{badge(ep.arc)}{mono(meta)}</div>'
-            f'<h1 class="h1 h1--page g20">{esc(ep.title)}</h1>'
+            f'<h1 class="h1 h1--page g20">{md.plain(ep.title)}</h1>'
             + (f'<p class="deck deck--sm g20">{esc(ep.orientation)}</p>' if ep.orientation else "") + '</div>')
     video = f'<div class="post-video">{card(ctx, ep.serial, ep.title, youtube_id=ep.youtube_id)}</div>'
 
@@ -271,7 +271,7 @@ def episode(ctx: Ctx, ep):
     if ctx.upcoming:
         up = ctx.upcoming
         nxt = (f'<div class="next-band"><a href="{ctx.to("episodes/")}"><div class="stack">{kicker("Next &middot; " + up.serial, "kicker--orange")}'
-               f'<div class="next-band__title g12">{esc(up.title)}</div></div>{_badge(up)}</a></div>')
+               f'<div class="next-band__title g12">{md.plain(up.title)}</div></div>{_badge(up)}</a></div>')
 
     return page(ctx, title=f"{ep.serial}: {ep.title}", active="Episodes", arc=ep.arc or None, noindex=ep.draft,
                 description=ep.excerpt or f"{ep.serial} of The Electron Plumber.", body=head + video + article + nxt)
@@ -336,14 +336,14 @@ def _citation(entry, src):
         return "" if text.endswith((".", "?", "!")) else "."
 
     title, rest = f["title"], ([_authors(entry.authors)] if entry.authors else []) + [where]
-    text = f"<cite>{esc(title)}</cite>{stop(title)} " + " ".join(esc(p) + stop(p) for p in rest)
+    text = f"<cite>{md.plain(title)}</cite>{stop(title)} " + " ".join(md.plain(p) + stop(p) for p in rest)
     doi, url = src.doi or f.get("doi", ""), src.url or f.get("url", "")
     if doi:
         text += f' <a href="https://doi.org/{esc(doi)}" rel="noopener">doi:{esc(doi)}</a>'
     elif url:
         text += f' <a href="{esc(url)}" rel="noopener">{esc(url.removeprefix("https://"))}</a>'
     if src.note:
-        text += f" {esc(src.note)}"
+        text += f" {md.plain(src.note)}"
     return f'<li>{text} <span class="mono">{src.kind.capitalize()}</span></li>'
 
 
@@ -429,19 +429,19 @@ def history(ctx: Ctx):
                                   esc(", ".join(content.THREADS[t] for t in ev.thread)), content.VERIFIED[ev.verified]])
         people = f'<p class="mono tl__people">{esc(", ".join(ev.people))}</p>' if ev.people else ""
         sources = "".join(_citation(s.entry, s) for s in ev.sources)
-        related = ('<p class="small tl__related">See also ' + ", ".join(f'<a href="#{esc(r)}">{esc(titles[r])}</a>' for r in ev.related)
+        related = ('<p class="small tl__related">See also ' + ", ".join(f'<a href="#{esc(r)}">{md.plain(titles[r])}</a>' for r in ev.related)
                    + "</p>") if ev.related else ""
         oneliner = f' data-oneliner="{esc(ev.oneliner)}"' if ev.oneliner else ""
         items += (f'<li class="tl" id="{esc(ev.id)}" data-era="{esc(ev.era)}" data-thread="{esc(" ".join(ev.thread))}" '
                   f'data-class="{esc(ev.cls)}" data-verified="{esc(ev.verified)}" data-year="{ev.sort_key[0]}"{oneliner}><article>'
                   f'<p class="mono tl__date">{_when(ev)}</p>'
-                  f'<h2 class="h3 tl__title"><a href="#{esc(ev.id)}">{esc(ev.title)}</a></h2>'
+                  f'<h3 class="h3 tl__title"><a href="#{esc(ev.id)}">{md.plain(ev.title)}</a></h3>'
                   f'<p class="mono tl__meta">{meta}</p>{_figure(ctx, ev.image)}'
-                  f'<p class="small tl__summary">{md.inline(ev.summary)}</p>{people}'
+                  f'<p class="small tl__summary">{md.plain(ev.summary)}</p>{people}'
                   f'<ol class="tl__sources">{sources}</ol>'
                   f'<p class="mono tl__checked">Checked {_time(ev.checked_date)}</p>'
                   f'{_episode_links(ctx, ev)}{related}</article></li>')
-    timeline = row("Timeline", f'<ol class="timeline">{items}</ol>', "row--tight")
+    timeline = row("Timeline", f'<ol class="timeline">{items}</ol>', "row--tight", heading=True)
     return page(ctx, title=title, active=title, description=description,
                 body=head + _history_filters(events) + timeline + subscribe(ctx))
 
@@ -451,15 +451,19 @@ RESEARCH_DESCRIPTION = ("Applied Vacuum Engineering: a falsifiable impedance mod
                         "with its kill criteria stated up front.")
 
 
+FALSIFIER_KICKERS = {"excluded": "Excluded by data", "armed": "Armed &middot; pre-registered"}
+
+
 def research(ctx: Ctx):
-    core = ctx.site["core_repo"]
+    core, counts = ctx.site["core_repo"], ctx.research
+    armed = counts.armed
     letter = core + "/blob/main/papers/2026_birefringence_letter/sve_vacuum_birefringence_letter.pdf"
     head = (f'<div class="page-head" style="padding-top: 80px; padding-bottom: 72px;"><div class="notice">{badge("speculative")}'
             f'<div class="mono mono--body">Explicit speculation.</div></div>'
             f'<h1 class="h1 g28">Applied Vacuum Engineering</h1>'
             f'<p class="deck g16" style="font-size: clamp(19px, 1.8vw, 26px);">A falsifiable impedance model of the vacuum.</p>'
-            f'<div class="mono g28">Apache-2.0 &nbsp;&middot;&nbsp; 1 armed forward falsifier &nbsp;&middot;&nbsp; '
-            f'44 consistency-class entries</div></div>')
+            f'<div class="mono g28">Apache-2.0 &nbsp;&middot;&nbsp; {armed} armed forward falsifier{"s" if armed != 1 else ""} '
+            f'&nbsp;&middot;&nbsp; {counts.consistency_entries} consistency-class entries</div></div>')
 
     wager = row("The wager", (
         '<p class="prose prose--lg">Applied Vacuum Engineering is a falsification-first <em>engineering</em> model of the vacuum. '
@@ -468,27 +472,36 @@ def research(ctx: Ctx):
         'Z&#8320; = &radic;(&mu;&#8320;/&epsilon;&#8320;) &asymp; 377 &Omega;, and a hard yield ceiling above which it snaps.</p>'
         '<p class="prose prose--lg g24">The wager is that the electron-plumber habit, reading electrical phenomena as mechanical '
         'stress in one medium, is the correct disciplinary frame. The point of the work is to find out where that wager breaks.</p>'),
-        "row--tight")
+        "row--tight", heading=True)
 
-    def fcard(color, status, title, text, link_text, href, mod):
+    cards = []
+
+    def fcard(fid, color, title, text, link_text, href, mod):
+        cards.append(fid)
+        if fid not in counts.falsifiers:
+            raise content.ContentError(f"research.toml: no [[falsifier]] with id {fid!r} for the Research page's card")
+        status = FALSIFIER_KICKERS[counts.falsifiers[fid]]
         return (f'<div class="fcard" style="--c: var(--{color});"><div class="fcard__top"></div><div class="fcard__body">'
                 f'{kicker(status, "kicker--" + color)}<h3 class="h3 g16">{title}</h3><p class="small g16">{text}</p>'
                 f'{arrow(link_text, href, mod, external=True)}</div></div>')
 
     die = row("Experimental falsification", (
         '<h2 class="h2">What kills the framework.</h2><div class="grid grid--2 g40">'
-        + fcard("vermillion", "Excluded by data", "The electrostatic gauntlet",
+        + fcard("electrostatic-gauntlet", "vermillion", "The electrostatic gauntlet",
                 "The framework put its own continuum static-field law on trial against muonic hydrogen, the sharpest available "
                 "probe of the atom&rsquo;s near-nucleus field. The law lost. Extrapolated into the atom&rsquo;s static sector, it "
                 "overshoots the measured Lamb-shift window, 202.3706(23) meV, by about 2&times;10<sup>4</sup>. A completed "
                 "falsification, banked on the record.", "Read the adjudication", core + "#experimental-falsification", "arrow--vermillion")
-        + fcard("orange", "Armed &middot; pre-registered", "Vacuum birefringence",
+        + fcard("vacuum-birefringence", "orange", "Vacuum birefringence",
                 "A tree-level X-ray vacuum birefringence, a field-independent factor 3.75&pi;/&alpha;<sup>2</sup> &asymp; "
                 "2.2&times;10<sup>5</sup> above one-loop QED. The kill criterion was committed before any data and timestamped on "
                 "the Bitcoin blockchain: a 5&sigma; pump-on null, P<sub>flip</sub> &lt; 10<sup>&minus;8</sup> at a pump intensity of "
                 "10<sup>18</sup> W/cm<sup>2</sup> or more, falsifies the model&rsquo;s electric sector. No rescue.",
                 "Read the Letter (PDF)", letter, "arrow--orange")
         + '</div>'), "row--tight")
+    extra = [fid for fid in counts.falsifiers if fid not in cards]
+    if extra:
+        raise content.ContentError(f"research.toml: falsifier {extra[0]!r} has no card on the Research page")
 
     def axiom(n, name, text):
         return f'<div class="trow"><div class="trow__n">{n}</div><div class="trow__name">{name}</div><div class="trow__text">{text}</div></div>'
@@ -498,7 +511,7 @@ def research(ctx: Ctx):
         + axiom("02", "Topo-kinematic isomorphism", "Charge is a geometric dislocation: [Q] &equiv; [L]. Topology encodes electromagnetism.")
         + axiom("03", "Gravity", "G sets the Machian boundary impedance.")
         + axiom("04", "Saturation", "S(A) = &radic;(1 &minus; (A/A<sub>yield</sub>)<sup>2</sup>): a universal yield kernel bounding all LC modes.")),
-        "row--tight")
+        "row--tight", heading=True)
 
     formval = row("Organizing principle", (
         '<h2 class="h2">Form is derived. Value is imported.</h2>'
@@ -521,7 +534,7 @@ def research(ctx: Ctx):
         + doc("The code", "Solvers, tests and the verification gate.", "GitHub", core)
         + doc("The pre-registration ledger", "The birefringence prediction and its kill criterion, hashed and Bitcoin-timestamped "
               "before any pump-on data exists.", "GitHub",
-              core + "/tree/main/claim-prereg-ots")), "row--tight")
+              core + "/tree/main/claim-prereg-ots")), "row--tight", heading=True)
 
     title, description = PAGE_TEXT["research/"]
     return page(ctx, title=title, active=title, arc="speculative", description=description,
@@ -582,7 +595,7 @@ def records(ctx: Ctx):
         '<div class="grid grid--3">'
         + lic("Sources", "All on-camera citations live in one BibTeX file, free to reuse.", "sources.bib", notes + "/blob/main/sources.bib")
         + lic("Episode notes", "CC BY-NC-ND 4.0: share with attribution; no commercial use; no derivatives.", "The notes repo", notes)
-        + lic("Research code", "Apache-2.0.", "AVE-Core on GitHub", ctx.site["core_repo"]) + '</div>'), "row--tight")
+        + lic("Research code", "Apache-2.0.", "AVE-Core on GitHub", ctx.site["core_repo"]) + '</div>'), "row--tight", heading=True)
 
     title, description = PAGE_TEXT[RECORDS[1]]
     return page(ctx, title=title, active=title, description=description, body=head + labels + claim + ledger + sources)
@@ -634,10 +647,10 @@ def _start_step(ctx, n, step):
     if step.kind == "episode":
         ep = step.episode
         if ep.live:
-            heading = f'<a href="{ctx.to(ep.url)}">{esc(ep.title)}</a>'
+            heading = f'<a href="{ctx.to(ep.url)}">{md.plain(ep.title)}</a>'
             text, arc = f'<p class="small g12">{esc(ep.excerpt)}</p>', ep.arc
         else:
-            heading = esc(ep.title)
+            heading = md.plain(ep.title)
             text, arc = f'<p class="small g12">{DECK}</p>{mono(ep.serial + " is in production", "g12")}', None
     else:
         title, description = PAGE_TEXT[step.route]

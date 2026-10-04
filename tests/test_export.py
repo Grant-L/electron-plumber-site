@@ -264,3 +264,18 @@ def test_the_cli_takes_the_input_path_as_an_argument(files):
                           "--links", str(files.tracker / "HISTORY-LINKS.md"), "--out", str(files.out)], capture_output=True, text=True)
     assert run.returncode == 1 and "1 confirmed, 0 confirmed and public" in run.stderr
     assert not files.out.exists()
+
+
+@pytest.mark.parametrize("key", ["title", "summary"])
+@pytest.mark.parametrize("char", ["*", "_", "`"])
+def test_markup_characters_in_titles_and_summaries_block_the_export(files, key, char):
+    text = entry().replace(f'{key} = "{key.capitalize()} ', f'{key} = "{char}{key.capitalize()} ')
+    assert f'{key} = "{char}' in text
+    with pytest.raises(SystemExit, match=re.escape(f"{key} must be plain text (no *, _ or `); nothing written")):
+        files(text)
+    assert not files.out.exists()
+
+
+def test_the_plain_text_check_covers_title_and_summary_only(files):
+    files(entry(extra='oneliner = "A snake_case name stays as written."'))
+    assert events(files.out)[0]["oneliner"] == "A snake_case name stays as written."

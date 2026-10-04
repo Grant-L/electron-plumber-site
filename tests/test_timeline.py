@@ -508,7 +508,7 @@ def test_a_private_term_in_an_event_is_caught(tmp_path, timeline_root, monkeypat
 # The fixture EVENT as main rendered it before the axis: the axis may only add data-year and data-from/data-to.
 GOLDEN_LI = ('<li class="tl" id="1843-hamilton-quaternions" data-era="ether" data-thread="vectors-quaternions" data-class="theory" '
              'data-verified="primary"><article><p class="mono tl__date"><time datetime="1843-10-16">16 October 1843</time></p>'
-             '<h2 class="h3 tl__title"><a href="#1843-hamilton-quaternions">Fixture title</a></h2><p class="mono tl__meta">'
+             '<h3 class="h3 tl__title"><a href="#1843-hamilton-quaternions">Fixture title</a></h3><p class="mono tl__meta">'
              "Fields and ether, 1840\u20131904 &middot; Theory &middot; Vectors and quaternions &middot; Checked against the original</p>"
              '<p class="small tl__summary">Fixture summary.</p><ol class="tl__sources"><li><cite>Fixture entry hamilton1865letter</cite>. '
              "Ann Author and Will Writer. Fixture Journal 1, 1\u20132 (2000). "
@@ -713,3 +713,51 @@ def test_focus_leaving_the_axis_closes_the_card_without_moving_focus():
     assert "ev.relatedTarget &&" in body and "!axis.contains(ev.relatedTarget)" in body
     assert "close()" in body and "close(true)" not in body and ".focus(" not in body
     assert "box" not in body and "chip" not in body
+
+
+EINSTEIN_TITLE = 'Einstein\'s \\"On the Electrodynamics of Moving Bodies\\"'
+EINSTEIN_CURLY = "Einstein\u2019s \u201cOn the Electrodynamics of Moving Bodies\u201d"
+
+
+def test_titles_summaries_and_citations_get_typographic_quotes(timeline_root):
+    bib_path = timeline_root / "content" / "sources.bib"
+    bib_path.write_text(bib_path.read_text(encoding="utf-8").replace(
+        "Fixture entry michelson1887ether", "The Ether and the Earth's Atmosphere"), encoding="utf-8")
+    einstein = EVENT.replace('"Fixture title"', f'"{EINSTEIN_TITLE}"').replace(
+        '"Fixture summary."', '"Albert Einstein\'s paper \\"Zur Elektrodynamik\\"."').replace(
+        'era = "ether"', 'era = "ether"\nrelated = ["1887-michelson-morley"]')
+    other = event("1887-michelson-morley", "1887-11", "ether", "experiment", ["ether"], "michelson1887ether",
+                  extra='related = ["1843-hamilton-quaternions"]')
+    html = render(timeline_root, einstein + "\n" + other)
+    assert re.search(r'class="h3 tl__title"><a href="#1843-hamilton-quaternions">' + EINSTEIN_CURLY + "</a>", html)
+    assert f'See also <a href="#1843-hamilton-quaternions">{EINSTEIN_CURLY}</a>' in html
+    assert "Albert Einstein\u2019s paper \u201cZur Elektrodynamik\u201d." in html
+    assert "<cite>The Ether and the Earth\u2019s Atmosphere</cite>" in html
+    assert "Earth's" not in html and "Einstein's" not in html
+
+
+@pytest.mark.parametrize("key", ["title", "summary"])
+@pytest.mark.parametrize("char", ["*", "_", "`"])
+def test_markup_characters_in_titles_and_summaries_are_refused(timeline_root, key, char):
+    text = EVENT.replace('"Fixture title"', f'"Fixture {char}title"') if key == "title" else \
+        EVENT.replace('"Fixture summary."', f'"Fixture {char}summary."')
+    with pytest.raises(SystemExit, match=re.escape(f"{key} must be plain text (no *, _ or `)")):
+        load(timeline_root, text)
+
+
+def test_an_episode_title_with_quotes_renders_curly_everywhere(tmp_path, published_root):
+    toml = published_root / "content" / "episodes.toml"
+    toml.write_text(toml.read_text(encoding="utf-8").replace('title = "X"', 'title = "It\'s \\"x\\""'), encoding="utf-8")
+    build.build(tmp_path / "site", root=published_root)
+    curly = "It\u2019s \u201cx\u201d"
+    episodes = (tmp_path / "site" / "episodes" / "index.html").read_text(encoding="utf-8")
+    home = (tmp_path / "site" / "index.html").read_text(encoding="utf-8")
+    page = (tmp_path / "site" / "episodes" / "001-x" / "index.html").read_text(encoding="utf-8")
+    assert f'<h2 class="h2 h2--row g16">{curly}</h2>' in episodes
+    assert f'<h2 class="h2 g16">{curly}</h2>' in home
+    assert f'<h1 class="h1 h1--page g20">{curly}</h1>' in page
+    assert f"<title>Episode 001: {curly} | The Electron Plumber</title>" in page
+    assert f'<meta property="og:title" content="Episode 001: {curly} | The Electron Plumber">' in page
+    for html in (episodes, home, page):
+        assert "It's" not in html and "&quot;x&quot;" not in html
+    assert check.check(tmp_path / "site") == []

@@ -1,6 +1,7 @@
 """Load and validate the site's content: content/site.toml, content/episodes.toml, content/episodes/*.md,
 the History timeline, content/timeline.toml, against its sources in content/sources.bib, and the corrections in
-content/errata.md. link_episodes() then gives each live episode the events, claims and corrections that name it."""
+content/errata.md, and the Research page's counts in content/research.toml.
+link_episodes() then gives each live episode the events, claims and corrections that name it."""
 import datetime
 import re
 import struct
@@ -56,6 +57,8 @@ HISTORY_IMAGES_MAX_BYTES = 200 * 1024
 ALT_OPENERS = ("image of", "picture of", "photo of")
 DOI = re.compile(r"10\.\d{4,9}/\S+")
 MD_LINK = re.compile(r"\]\(|<https?://")
+# Timeline titles and summaries render as plain text, so a character that reads as Markdown emphasis or code is refused.
+MARKUP = re.compile(r"[*_`]")
 
 
 class ContentError(SystemExit):
@@ -595,6 +598,9 @@ def load_timeline(root: Path, episodes, today=None, files=True):
             raise ContentError(f"{where}: summary must be 1 to 600 characters")
         if MD_LINK.search(ev.summary):
             raise ContentError(f"{where}: summary must not contain links")
+        for key in ("title", "summary"):
+            if MARKUP.search(getattr(ev, key)):
+                raise ContentError(f"{where}: {key} must be plain text (no *, _ or `)")
         if "oneliner" in item:
             line = ev.oneliner
             if not isinstance(line, str) or not line.strip() or set(line) & set("\n\r<>"):
@@ -674,6 +680,65 @@ def load_timeline(root: Path, episodes, today=None, files=True):
                 raise ContentError(f"timeline.toml, event {ev.id}: the {ev.era!r} era is not contiguous in the file")
     _check_history_images(root, events, files)
     return events
+
+
+# ---------------------------------------------------------------- the Research page counts: content/research.toml
+FALSIFIER_STATUSES = ("excluded", "armed")
+FALSIFIER_ID = re.compile(r"[a-z0-9-]+")
+RESEARCH_KEYS = {"pin", "checked", "consistency_entries", "falsifier"}
+
+
+@dataclass
+class Research:
+    pin: str
+    checked: str
+    consistency_entries: int
+    falsifiers: dict  # id -> status, in file order
+
+    @property
+    def armed(self):
+        return sum(status == "armed" for status in self.falsifiers.values())
+
+
+def load_research(root: Path, today=None):
+    """content/research.toml: the counts the Research page shows, read by hand from AVE-Core at the commit in pin."""
+    path = root / "content" / "research.toml"
+    if not path.is_file():
+        raise ContentError("content/research.toml does not exist")
+    today = today or datetime.date.today()
+    raw = tomllib.loads(path.read_text(encoding="utf-8"))
+    unknown = sorted(set(raw) - RESEARCH_KEYS)
+    if unknown:
+        raise ContentError(f"research.toml: unknown key {unknown[0]!r} (one of {', '.join(sorted(RESEARCH_KEYS))})")
+    pin = raw.get("pin")
+    if not isinstance(pin, str) or not re.fullmatch(r"[0-9a-f]{40}", pin):
+        raise ContentError("research.toml: pin must be the full 40-character AVE-Core commit SHA")
+    checked = raw.get("checked")
+    if not isinstance(checked, datetime.date) or isinstance(checked, datetime.datetime):
+        raise ContentError("research.toml: checked must be a date, YYYY-MM-DD (unquoted)")
+    if checked > today:
+        raise ContentError(f"research.toml: checked {checked.isoformat()} is in the future")
+    entries = raw.get("consistency_entries")
+    if not isinstance(entries, int) or isinstance(entries, bool) or entries < 0:
+        raise ContentError("research.toml: consistency_entries must be a whole number, 0 or more")
+    items = raw.get("falsifier", [])
+    if not isinstance(items, list) or not all(isinstance(i, dict) for i in items):
+        raise ContentError("research.toml: falsifiers must be [[falsifier]] tables")
+    falsifiers = {}
+    for n, item in enumerate(items, 1):
+        where = f"research.toml, falsifier {item.get('id') or '#' + str(n)}"
+        unknown = sorted(set(item) - {"id", "status"})
+        if unknown:
+            raise ContentError(f"{where}: unknown key {unknown[0]!r} (the fields are id and status)")
+        fid, status = item.get("id"), item.get("status")
+        if not isinstance(fid, str) or not FALSIFIER_ID.fullmatch(fid):
+            raise ContentError(f"{where}: id must be lowercase letters, digits and hyphens")
+        if fid in falsifiers:
+            raise ContentError(f"{where}: duplicate id")
+        if status not in FALSIFIER_STATUSES:
+            raise ContentError(f"{where}: unknown status {status!r} (one of {', '.join(FALSIFIER_STATUSES)})")
+        falsifiers[fid] = status
+    return Research(pin=pin, checked=checked.isoformat(), consistency_entries=entries, falsifiers=falsifiers)
 
 
 # ---------------------------------------------------------------- corrections: content/errata.md
