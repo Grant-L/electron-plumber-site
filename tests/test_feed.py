@@ -6,7 +6,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
-from conftest import EP1_SOURCE
+from conftest import EP1_SOURCE, copy_static
 
 import build
 import check
@@ -35,7 +35,7 @@ def episode(number=1, title="Fixture title", date="2026-11-01", excerpt="A fixtu
 @pytest.fixture
 def fixture_build(timeline_root, tmp_path):
     """Build the site from fixture episodes.toml text. Returns (built site path, parsed feed root)."""
-    (timeline_root / "static").symlink_to(build.ROOT / "static")
+    copy_static(timeline_root)
 
     def run(episodes_toml, drafts=False):
         (timeline_root / "content" / "episodes.toml").write_text(episodes_toml, encoding="utf-8")

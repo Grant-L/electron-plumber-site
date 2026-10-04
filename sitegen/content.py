@@ -3,11 +3,13 @@ the History timeline, content/timeline.toml, against its sources in content/sour
 content/errata.md. link_episodes() then gives each live episode the events, claims and corrections that name it."""
 import datetime
 import re
+import struct
 import tomllib
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from check import ACRONYM, PLACEHOLDER
+from check import ACRONYM, PLACEHOLDER, forbidden_terms
 
 from . import bib, md
 
@@ -45,6 +47,13 @@ PARTIAL_DATE = re.compile(r"(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?")
 # A public-safe display name: no digits, so bot ids and numbered handles cannot pass.
 CHECKED_BY = re.compile(r"[A-Z][A-Za-z .'-]{1,39}")
 CLAIM = re.compile(r"ep(\d{3})-c\d{2,}")
+IMAGE_DIR = "static/img/history"
+IMAGE_FILE = re.compile(r"static/img/history/[a-z0-9-]+\.(webp|jpg|svg)")
+IMAGE_LICENSES = ("public-domain", "cc0", "cc-by-4.0", "own-work")
+IMAGE_SOURCE = re.compile(r"https://commons\.wikimedia\.org/wiki/File:\S+")
+IMAGE_MAX_BYTES = 40_960
+HISTORY_IMAGES_MAX_BYTES = 200 * 1024
+ALT_OPENERS = ("image of", "picture of", "photo of")
 DOI = re.compile(r"10\.\d{4,9}/\S+")
 MD_LINK = re.compile(r"\]\(|<https?://")
 
@@ -268,6 +277,7 @@ class Event:
     episodes: list = field(default_factory=list)
     related: list = field(default_factory=list)
     sources: list = field(default_factory=list)  # TOML [[event.source]]
+    image: object = None  # TOML [event.image], an Image once loaded
 
     @property
     def precision(self):
@@ -276,6 +286,146 @@ class Event:
     @property
     def sort_key(self):
         return date_key(self.date or self.not_before or self.not_after)
+
+
+@dataclass
+class Image:
+    file: str
+    alt: str
+    author: str
+    title: str
+    license: str
+    width: int
+    height: int
+    source_url: str = ""
+    caption: str = ""
+
+
+def image_size(path: Path):
+    """(width, height) in pixels of a WebP or JPEG file, or the viewBox size of an SVG; None if unreadable."""
+    data = path.read_bytes()
+    if path.suffix == ".webp":
+        if data[:4] != b"RIFF" or data[8:12] != b"WEBP" or len(data) < 25:
+            return None
+        chunk = data[12:16]
+        if chunk == b"VP8 " and data[23:26] == b"\x9d\x01\x2a" and len(data) >= 30:
+            w, h = struct.unpack("<HH", data[26:30])
+            return w & 0x3FFF, h & 0x3FFF
+        if chunk == b"VP8L" and data[20] == 0x2F:
+            bits = int.from_bytes(data[21:25], "little")
+            return (bits & 0x3FFF) + 1, ((bits >> 14) & 0x3FFF) + 1
+        if chunk == b"VP8X" and len(data) >= 30:
+            return int.from_bytes(data[24:27], "little") + 1, int.from_bytes(data[27:30], "little") + 1
+        return None
+    if path.suffix == ".jpg":
+        if data[:2] != b"\xff\xd8":
+            return None
+        i = 2
+        while i + 9 <= len(data):
+            if data[i] != 0xFF:
+                return None
+            marker = data[i + 1]
+            if marker in (0xC0, 0xC2):
+                h, w = struct.unpack(">HH", data[i + 5:i + 9])
+                return w, h
+            if marker == 0x01 or 0xD0 <= marker <= 0xD7:
+                i += 2
+                continue
+            i += 2 + struct.unpack(">H", data[i + 2:i + 4])[0]
+        return None
+    if path.suffix == ".svg":
+        try:
+            box = ET.fromstring(data).get("viewBox", "").replace(",", " ").split()
+            w, h = float(box[2]), float(box[3])
+        except (ET.ParseError, IndexError, ValueError):
+            return None
+        return (int(w), int(h)) if w.is_integer() and h.is_integer() else None
+    return None
+
+
+def _image_text(value, where, name, terms):
+    if ACRONYM.search(value):
+        raise ContentError(f"{where}: image {name} must spell out the framework's name (three-letter acronym found)")
+    if PLACEHOLDER.search(value):
+        raise ContentError(f"{where}: image {name} has a capitalised bracket placeholder (write [sic] in lowercase)")
+    if any(t in value.lower() for t in terms):
+        raise ContentError(f"{where}: image {name} has a term that must never appear on a channel surface")
+
+
+def _image(raw, ev, where, root, terms, files):
+    """[event.image] as an Image. With files, the file itself is checked too: it exists, its size and pixel size."""
+    if not isinstance(raw, dict):
+        raise ContentError(f"{where}: image must be an [event.image] table")
+    try:
+        img = Image(**raw)
+    except TypeError as exc:
+        raise ContentError(f"{where}, image: {exc}") from None
+    for key in ("file", "alt", "author", "title", "license", "source_url", "caption"):
+        if not isinstance(getattr(img, key), str):
+            raise ContentError(f"{where}: image {key} must be a string")
+    for key in ("width", "height"):
+        value = getattr(img, key)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            raise ContentError(f"{where}: image {key} must be a positive integer")
+    m = IMAGE_FILE.fullmatch(img.file)
+    if not m:
+        raise ContentError(f"{where}: image file must look like {IMAGE_DIR}/<event-id>.webp (or .jpg, .svg), got {img.file!r}")
+    if img.license not in IMAGE_LICENSES:
+        raise ContentError(f"{where}: unknown image license {img.license!r} (one of {', '.join(IMAGE_LICENSES)})")
+    if m.group(1) == "svg" and img.license != "own-work":
+        raise ContentError(f"{where}: an .svg image must be own-work")
+    if img.source_url or img.license != "own-work":
+        if not IMAGE_SOURCE.fullmatch(img.source_url):
+            raise ContentError(f"{where}: image source_url must be an https://commons.wikimedia.org/wiki/File: page")
+
+    alt = img.alt
+    if not alt.strip() or len(alt) > 150 or set(alt) & set("\n\r<>"):
+        raise ContentError(f"{where}: image alt must be one line of 1 to 150 characters, without < or >")
+    if alt.strip().lower() in (img.title.strip().lower(), ev.title.strip().lower()):
+        raise ContentError(f"{where}: image alt must describe the picture, not repeat a title")
+    if alt.lower().startswith(ALT_OPENERS):
+        raise ContentError(f"{where}: image alt must not start with 'Image of', 'Picture of' or 'Photo of'")
+    for key in ("author", "title"):
+        if not getattr(img, key).strip() or set(getattr(img, key)) & set("\n\r"):
+            raise ContentError(f"{where}: image {key} must be one line of text")
+    if "caption" in raw and (not img.caption.strip() or len(img.caption) > 140 or set(img.caption) & set("\n\r")):
+        raise ContentError(f"{where}: image caption must be one line of at most 140 characters")
+    for key in ("alt", "caption", "title", "author"):
+        _image_text(getattr(img, key), where, key, terms)
+
+    if files:
+        path = root / img.file
+        if not path.is_file():
+            raise ContentError(f"{where}: image file {img.file} does not exist")
+        if path.stat().st_size > IMAGE_MAX_BYTES:
+            raise ContentError(f"{where}: image file is {path.stat().st_size} bytes, at most {IMAGE_MAX_BYTES}")
+        size = image_size(path)
+        if size is None:
+            raise ContentError(f"{where}: cannot read the pixel size of {img.file}")
+        if size != (img.width, img.height):
+            raise ContentError(f"{where}: image width and height say {img.width}x{img.height}, the file is {size[0]}x{size[1]}")
+    return img
+
+
+def _check_history_images(root: Path, events, files):
+    """Across the timeline: no shared files and, with files, no unreferenced file in the folder and the page's total
+    under its cap."""
+    used = {}
+    for ev in events:
+        if ev.image:
+            if ev.image.file in used:
+                raise ContentError(f"timeline.toml, event {ev.id}: image file {ev.image.file} is also used by {used[ev.image.file]}")
+            used[ev.image.file] = ev.id
+    if not files:
+        return
+    folder = root / IMAGE_DIR
+    present = sorted(p for p in folder.iterdir() if p.is_file()) if folder.is_dir() else []
+    for path in present:
+        if f"{IMAGE_DIR}/{path.name}" not in used:
+            raise ContentError(f"{IMAGE_DIR}/{path.name}: no event in timeline.toml uses this file")
+    total = sum(p.stat().st_size for p in present)
+    if total > HISTORY_IMAGES_MAX_BYTES:
+        raise ContentError(f"{IMAGE_DIR}: images total {total} bytes, at most {HISTORY_IMAGES_MAX_BYTES} for the History page")
 
 
 def date_key(text):
@@ -365,17 +515,18 @@ def validate_episode_sources(root: Path, episodes):
         ep.sources = _sources(ep.sources, f"episodes.toml, episode {ep.number}", sources_bib)
 
 
-def load_timeline(root: Path, episodes, today=None):
+def load_timeline(root: Path, episodes, today=None, files=True):
     """content/timeline.toml as a list of Event, checked against content/sources.bib and the episodes.
-    A missing file means no timeline yet: []."""
+    A missing file means no timeline yet: []. files=False skips the checks that read static/img/history/,
+    for a caller that has the data but not the site's files."""
     path = root / "content" / "timeline.toml"
-    if not path.is_file():
+    raw = tomllib.loads(path.read_text(encoding="utf-8")).get("event", []) if path.is_file() else []
+    if not raw:
+        _check_history_images(root, [], files)
         return []
     today = today or datetime.date.today()
-    raw = tomllib.loads(path.read_text(encoding="utf-8")).get("event", [])
-    if not raw:
-        return []
     sources_bib = load_bib(root)
+    terms = forbidden_terms()
     numbers = {e.number: e for e in episodes}
 
     events, ids = [], set()
@@ -504,6 +655,8 @@ def load_timeline(root: Path, episodes, today=None):
             if number in claimed:
                 raise ContentError(f"{where}: episode {number} is already linked through a claim")
         _strings(ev.related, where, "related")
+        if ev.image is not None:
+            ev.image = _image(ev.image, ev, where, root, terms, files)
         events.append(ev)
 
     for ev in events:
@@ -519,6 +672,7 @@ def load_timeline(root: Path, episodes, today=None):
             left.add(before.era)
             if ev.era in left:
                 raise ContentError(f"timeline.toml, event {ev.id}: the {ev.era!r} era is not contiguous in the file")
+    _check_history_images(root, events, files)
     return events
 
 
