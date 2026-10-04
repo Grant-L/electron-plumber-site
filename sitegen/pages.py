@@ -50,7 +50,7 @@ def home(ctx: Ctx):
             f'<img src="{ctx.to("img/mark-banner-halo.svg")}" width="236" height="236" '
             f'alt="Channel logo: a Smith chart with a three-lobed closed curve inside it"></div>'
             f'<div class="plate-block">{kicker("The Electron Plumber")}<hr class="rule rule--plate g20">'
-            f'<h1 class="h1 h1--hero g36">What is an electron?</h1><p class="deck g24">{DECK}</p>'
+            f'<h1 class="h1 h1--hero g36">What is an Electron?</h1><p class="deck g24">{DECK}</p>'
             f'<div class="g20">{arrow(START_TITLE, ctx.to("start/"))}</div>'
             f'<div class="mono mono--sky g28">{esc(s["tagline"])}</div>{status}'
             f'<div class="cluster cluster--stack g40">{actions}</div></div>')
