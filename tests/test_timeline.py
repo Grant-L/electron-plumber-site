@@ -520,7 +520,7 @@ GOLDEN_ERA_CHIPS = ('<div class="filter__chips" role="group" aria-label="Filter 
                     'aria-pressed="false">Fields and ether</button></div>')
 AXIS_ATTRS = re.compile(r' data-(?:year|from|to)="[^"]*"')
 # Bytes. Measured with the preview card in, the episode-page ledger rules (925 bytes of CSS) merged from main, and
-# the card closing when focus leaves the axis: site.js 17,175, gzip -9 6,246; site.css 29,618. Raising one
+# the card closing when focus leaves the axis: site.js 17,244, gzip -9 6,288; site.css 29,755. Raising one
 # is a decision for the PR that needs it, not a test fix.
 JS_CEILING, JS_GZIP_CEILING, CSS_CEILING = 17_500, 6_400, 30_000
 

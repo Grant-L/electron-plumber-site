@@ -158,7 +158,7 @@
     tip.classList.toggle("tl-axis__tip--below", under);
     tip.style.cssText = `left:${left}px;top:${under ? below : r.top - ib.top - h - 4}px;--x:${x - left}px`;
   };
-  // Under the track, on the open dot.
+  // Under the track, on the open dot. At 560px and below the CSS puts it in flow and ignores left and top.
   const pin = () => {
     if (!open) { return; }
     const { ib, w, x, left } = beside(open, card, 8);

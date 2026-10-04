@@ -257,6 +257,9 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
   .tl-axis { --hit: 44px; }
 }
 @media (max-width: 560px) {
+  .tl-card { position: static; width: auto; margin-top: 8px; }
+  .tl-card::before { content: none; }
+  .tl-card__read { display: flex; }
   .tl-axis__filter { display: flex; }
   .tl-axis__filter[aria-expanded="true"] { color: var(--fg); border-bottom-color: var(--sky); }
   .tl-axis__filter[aria-expanded="false"] ~ .filter__chips { display: none; }
