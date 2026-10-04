@@ -54,7 +54,7 @@ def test_an_event_without_reading_links_has_none(timeline_root):
 def test_the_host_allowlist_is_exactly_the_vetted_hosts():
     assert content.FURTHER_HOSTS == {
         "www.maths.tcd.ie", "archive.org", "mathshistory.st-andrews.ac.uk", "ajsonline.org", "www.aps.org",
-        "history.aip.org", "www.nobelprize.org", "journals.aps.org", "arxiv.org", "physics.aps.org"}
+        "history.aip.org", "www.nobelprize.org", "journals.aps.org", "arxiv.org", "physics.aps.org", "royalsocietypublishing.org"}
 
 
 @pytest.mark.parametrize("change, message", [
@@ -230,6 +230,6 @@ def test_every_new_href_on_the_built_history_page_is_external_https_or_resolves(
     hrefs = re.findall(r'class="tl__read" href="([^"]+)"|href="([^"]+)">Free full text<', html)
     hrefs = [a or b for a, b in hrefs] + re.findall(r'<a href="([^"]+)">[^<]*</a> \(', html)
     hrefs += re.findall(r'href="(#[^"]+)"', re.search(r'<nav class="tl-years".*?</nav>', html).group(0))
-    assert len(hrefs) == 7 + 7 + 13 + 8  # Kelvin's paper has no DOI or url: it shows only its free full text
+    assert len(hrefs) == 7 + 8 + 13 + 8  # Kelvin's paper has no DOI or url: it shows only its free full text
     for href in hrefs:
         assert href.startswith("https://") or f'id="{href[1:]}"' in html, href

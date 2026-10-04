@@ -61,7 +61,7 @@ MD_LINK = re.compile(r"\]\(|<https?://")
 # Reading links on a timeline entry (a source's url and fulltext_url, and [[event.further]]): only these hosts.
 FURTHER_HOSTS = frozenset({
     "www.maths.tcd.ie", "archive.org", "mathshistory.st-andrews.ac.uk", "ajsonline.org", "www.aps.org",
-    "history.aip.org", "www.nobelprize.org", "journals.aps.org", "arxiv.org", "physics.aps.org",
+    "history.aip.org", "www.nobelprize.org", "journals.aps.org", "arxiv.org", "physics.aps.org", "royalsocietypublishing.org",
 })
 LINK_QUERY_KEYS = ("id", "page")
 TRACKING_QUERY = re.compile(r"utm_.*|fbclid|gclid|ref", re.I)

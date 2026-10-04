@@ -193,6 +193,7 @@ checked_date = "2026-10-03"
   key = "dirac1928electron"
   kind = "primary"
   doi = "10.1098/rspa.1928.0023"
+  fulltext_url = "https://royalsocietypublishing.org/doi/pdf/10.1098/rspa.1928.0023"
 
   [[event.further]]
   title = "January 1928: The Dirac equation unifies quantum mechanics and special relativity"
