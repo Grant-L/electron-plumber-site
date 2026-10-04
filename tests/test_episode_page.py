@@ -86,9 +86,10 @@ def ids(html):
 
 # ------------------------------------------------------------------ 1: today's public build
 def test_todays_public_build_shows_none_of_it(tmp_path):
+    _, episodes = content.load(ROOT)
     build.build(tmp_path / "site")
     site = tmp_path / "site"
-    assert not list((site / "episodes").glob("*/index.html"))
+    assert {p.parent.name for p in (site / "episodes").glob("*/index.html")} == {e.slug for e in episodes if e.live}
     assert "tl__episodes" not in read(site, "history/index.html")
     assert check.check(site) == []
     for page in ("index.html", "episodes/index.html", "history/index.html", "corrections/index.html"):
