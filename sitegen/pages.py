@@ -650,8 +650,10 @@ def _start_step(ctx, n, step):
             heading = f'<a href="{ctx.to(ep.url)}">{md.plain(ep.title)}</a>'
             text, arc = f'<p class="small g12">{esc(ep.excerpt)}</p>', ep.arc
         else:
-            heading = f'<a href="{esc(ctx.sub_url)}" rel="noopener">{md.plain(ep.title)}</a>'
+            heading = md.plain(ep.title)
             text, arc = f'<p class="small g12">{DECK}</p>{mono(ep.serial + " is in production", "g12")}', None
+            text += (f'<p class="small g12">Episode 1 is coming soon. '
+                     f'<a href="{esc(ctx.sub_url)}" rel="noopener">Subscribe</a> to get it first.</p>')
     else:
         title, description = PAGE_TEXT[step.route]
         href = ctx.to(step.route) + (f"#{step.anchor}" if step.anchor else "")
