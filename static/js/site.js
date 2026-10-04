@@ -183,11 +183,11 @@
     title.textContent = a.mark.title;
     line.textContent = li.dataset.oneliner || "";
     line.hidden = !li.dataset.oneliner;
-    const cite = cites.find((c) => c.querySelector(".mono").textContent === "Primary") || cites[0];
+    const cite = cites.find((c) => c.querySelector(".mono:last-child").textContent === "Primary") || cites[0];
     source.hidden = !cite;
     if (cite) {
       const copy = cite.cloneNode(true);
-      copy.querySelectorAll("a, .mono").forEach((n) => n.remove());
+      copy.querySelectorAll("a, .mono").forEach((n) => { if (n.previousSibling?.nodeValue === " \u00b7 ") { n.previousSibling.remove(); } n.remove(); });
       source.replaceChildren("Source: ", ...copy.childNodes);
     }
     read.href = "#" + li.id;

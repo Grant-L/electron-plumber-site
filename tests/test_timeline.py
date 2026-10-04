@@ -506,13 +506,15 @@ def test_a_private_term_in_an_event_is_caught(tmp_path, timeline_root, monkeypat
 
 # ------------------------------------------------------------------ 18: the interactive axis (site.js draws it)
 # The fixture EVENT as main rendered it before the axis: the axis may only add data-year and data-from/data-to.
+# The primary source's reading link is the one later change: "Original paper" with the DOI beside it.
 GOLDEN_LI = ('<li class="tl" id="1843-hamilton-quaternions" data-era="ether" data-thread="vectors-quaternions" data-class="theory" '
              'data-verified="primary"><article><p class="mono tl__date"><time datetime="1843-10-16">16 October 1843</time></p>'
              '<h3 class="h3 tl__title"><a href="#1843-hamilton-quaternions">Fixture title</a></h3><p class="mono tl__meta">'
              "Fields and ether, 1840\u20131904 &middot; Theory &middot; Vectors and quaternions &middot; Checked against the original</p>"
              '<p class="small tl__summary">Fixture summary.</p><ol class="tl__sources"><li><cite>Fixture entry hamilton1865letter</cite>. '
              "Ann Author and Will Writer. Fixture Journal 1, 1\u20132 (2000). "
-             '<a href="https://doi.org/10.0000/fixture.hamilton1865letter" rel="noopener">doi:10.0000/fixture.hamilton1865letter</a> '
+             '<a class="tl__read" href="https://doi.org/10.0000/fixture.hamilton1865letter">Original paper</a> '
+             '<span class="mono">doi:10.0000/fixture.hamilton1865letter</span> '
              '<span class="mono">Primary</span></li></ol><p class="mono tl__checked">Checked <time datetime="2026-10-03">3 October 2026</time>'
              "</p></article></li>")
 GOLDEN_ERA_CHIPS = ('<div class="filter__chips" role="group" aria-label="Filter by era" data-filter="era"><button class="chip" type="button" '
