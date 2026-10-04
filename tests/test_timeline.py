@@ -1,3 +1,4 @@
+import gzip
 import re
 from html.parser import HTMLParser
 
@@ -504,3 +505,72 @@ def test_a_private_term_in_an_event_is_caught(tmp_path, timeline_root, monkeypat
     monkeypatch.setenv("FORBIDDEN_TERMS", "zzqx-corp")
     site = _built_with(tmp_path, timeline_root, EVENT.replace('"Fixture summary."', '"Funded by ZZQX-Corp."'))
     assert any(p.startswith("history/index.html") and "must never appear" in p for p in check.check(site))
+
+
+# ------------------------------------------------------------------ 18: the interactive axis (site.js draws it)
+# The fixture EVENT as main rendered it before the axis: the axis may only add data-year and data-from/data-to.
+GOLDEN_LI = ('<li class="tl" id="1843-hamilton-quaternions" data-era="ether" data-thread="vectors-quaternions" data-class="theory" '
+             'data-verified="primary"><article><p class="mono tl__date"><time datetime="1843-10-16">16 October 1843</time></p>'
+             '<h2 class="h3 tl__title"><a href="#1843-hamilton-quaternions">Fixture title</a></h2><p class="mono tl__meta">'
+             "Fields and ether, 1840\u20131904 &middot; Theory &middot; Vectors and quaternions &middot; Checked against the original</p>"
+             '<p class="small tl__summary">Fixture summary.</p><ol class="tl__sources"><li><cite>Fixture entry hamilton1865letter</cite>. '
+             "Ann Author and Will Writer. Fixture Journal 1, 1\u20132 (2000). "
+             '<a href="https://doi.org/10.0000/fixture.hamilton1865letter" rel="noopener">doi:10.0000/fixture.hamilton1865letter</a> '
+             '<span class="mono">Primary</span></li></ol><p class="mono tl__checked">Checked <time datetime="2026-10-03">3 October 2026</time>'
+             "</p></article></li>")
+GOLDEN_ERA_CHIPS = ('<div class="filter__chips" role="group" aria-label="Filter by era" data-filter="era"><button class="chip" type="button" '
+                    'data-value="all" aria-pressed="true">All eras</button><button class="chip" type="button" data-value="ether" '
+                    'aria-pressed="false">Fields and ether</button></div>')
+AXIS_ATTRS = re.compile(r' data-(?:year|from|to)="[^"]*"')
+JS_BASELINE, JS_GZIP_BASELINE, CSS_BASELINE = 3697, 1441, 24194  # bytes on main before the axis
+
+
+def test_each_entry_carries_its_sort_key_year(timeline_root):
+    events = load(timeline_root, SEED)
+    p = parse(render(timeline_root, SEED))
+    assert [item["data-year"] for item in p.items] == [str(ev.sort_key[0]) for ev in events]
+    html = render(timeline_root, bounded("1850-bounded", 'not_before = "1845"\nnot_after = "1850"'))
+    assert parse(html).items[0]["data-year"] == "1845"
+
+
+def test_era_chips_carry_the_era_bounds_in_chip_order(timeline_root):
+    html = render(timeline_root, SEED)
+    era_group = re.search(r'data-filter="era">(.*?)</div>', html).group(1)
+    bounds = re.findall(r'data-value="([\w-]+)" data-from="(\d+)" data-to="(\d*)"', era_group)
+    assert bounds == [(slug, str(first), str(last or "")) for slug, (_, first, last) in content.ERAS.items()]
+    assert bounds[-1] == ("precision", "1950", "")
+    assert html.count("data-from=") == len(content.ERAS) and 'data-value="all" data-from' not in html
+
+
+def test_without_javascript_the_markup_is_otherwise_unchanged(timeline_root):
+    html = render(timeline_root, EVENT)
+    assert 'data-verified="primary" data-year="1843"><article>' in html
+    stripped = AXIS_ATTRS.sub("", html)
+    assert GOLDEN_LI in stripped and GOLDEN_ERA_CHIPS in stripped
+    assert "tl-axis" not in html and "tl--current" not in html  # the axis and the highlight exist only once site.js runs
+
+
+def test_the_axis_css_only_styles_what_site_js_adds():
+    css = re.sub(r"/\*.*?\*/", "", (ROOT / "static" / "css" / "site.css").read_text(encoding="utf-8"), flags=re.S)
+    start = css.index(".tl-axis {")
+    last = "@media print, (max-width: 560px) {\n  .tl-axis { display: none; }\n}"
+    end = css.index(last) + len(last)
+    for selector in re.findall(r"([^{}]+)\{", css[start:end]):
+        selector = selector.strip()
+        assert selector.startswith("@media") or all("tl-axis" in s or "tl--current" in s for s in selector.split(",")), selector
+
+
+def test_site_js_requests_nothing_but_the_video_embed():
+    js = (ROOT / "static" / "js" / "site.js").read_text(encoding="utf-8")
+    assert re.findall(r"https?://[^\"'`\s]+", js) == ["https://www.youtube-nocookie.com/embed/"]
+    assert not re.search(r"[\"'`]//", js)
+    assert not any(word in js for word in ("fetch(", "XMLHttpRequest", "import(", "sendBeacon", "WebSocket", "new Image"))
+
+
+def test_site_js_and_css_stay_within_the_axis_budget():
+    """Raw bytes as served: the site has no minify step. Gzip is what the browser transfers."""
+    js = (ROOT / "static" / "js" / "site.js").read_bytes()
+    css = (ROOT / "static" / "css" / "site.css").read_bytes()
+    assert len(css) - CSS_BASELINE <= 3_900
+    assert len(js) - JS_BASELINE <= 10_000
+    assert len(gzip.compress(js, 9)) - JS_GZIP_BASELINE <= 3.5 * 1024
