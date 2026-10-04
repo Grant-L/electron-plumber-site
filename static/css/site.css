@@ -38,6 +38,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 img, svg { display: block; max-width: 100%; }
+img { height: auto; }
 a { color: var(--sky); }
 a:hover { color: #9bd3f3; }
 h1, h2, h3, p, ul, ol, figure, blockquote { margin: 0; }
@@ -198,17 +199,16 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl { display: block; padding: 40px 0; border-top: 1px solid var(--line); scroll-margin-top: 24px; }
 .tl:first-child { padding-top: 0; border-top: 0; }
 .tl[hidden] { display: none; }
-.tl article { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
-.tl__date { color: var(--sky); }
+.tl article { display: flow-root; max-width: 760px; }
+.tl article > * + :not(button) { margin-top: 10px; }
+.tl__date, .tl__title a:hover { color: var(--sky); }
 .tl__date abbr { text-decoration: none; }
 .tl__title a { color: inherit; text-decoration: none; }
-.tl__title a:hover { color: var(--sky); }
-.tl__summary { color: var(--body); }
-.tl__people { color: var(--body); }
+.tl__summary, .tl__people { color: var(--body); }
+.tl__figure { float: right; width: 160px; margin-left: 1rem; }
 .tl__sources { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 1.55; overflow-wrap: anywhere; }
 .tl__sources cite { color: var(--fg); }
-.tl__sources .mono { font-size: 12px; }
-.tl__checked { font-size: 12px; }
+.tl__sources .mono, .tl__checked { font-size: 12px; }
 
 /* The era axis over the timeline, and the phone fold of its filter chips. site.js builds both, so none of this
  * applies without JavaScript. --hit is the marker's hit area, which site.js reads; site.js sets --lanes. */
@@ -253,7 +253,7 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl-card__source { margin-top: 8px; font-size: 12px; overflow-wrap: anywhere; }
 .tl-card__source cite { color: var(--fg); }
 .tl-card__read { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 4px; color: var(--sky); font: 500 13px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; }
-.tl__back { display: inline-flex; margin-top: 16px; }
+.tl__back { display: flex; margin-top: 26px; }
 @media (pointer: coarse) {
   .tl-axis { --hit: 44px; }
 }
@@ -392,6 +392,7 @@ a.trow:hover .trow__name { color: var(--sky); }
   .next-band a { flex-direction: column; align-items: flex-start; padding: 48px 0; }
 }
 @media (max-width: 560px) {
+  .tl__figure { float: none; margin: 0; }
   .row > .inner, .row--tight > .inner, .row--tighter > .inner { padding-top: 56px; padding-bottom: 56px; }
   .grid--4 { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .cluster--stack { flex-direction: column; align-items: stretch; gap: 12px; }
