@@ -1,7 +1,7 @@
 # Counts shown on /research/. Everything in this file is public.
 # Read from AVE-Core at the commit in `pin`; re-check and bump `pin` and `checked` when AVE-Core moves.
 pin = "40108030335165c1e7412936cd4a0152d5a07a98"
-checked = 2026-10-04
+checked = 2026-10-03
 consistency_entries = 44   # AVE-Core README: "44 consistency-class entries" (manuscript/consistency-manifest.yaml)
 
 [[falsifier]]
