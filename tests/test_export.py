@@ -274,3 +274,8 @@ def test_markup_characters_in_titles_and_summaries_block_the_export(files, key, 
     with pytest.raises(SystemExit, match=re.escape(f"{key} must be plain text (no *, _ or `); nothing written")):
         files(text)
     assert not files.out.exists()
+
+
+def test_the_plain_text_check_covers_title_and_summary_only(files):
+    files(entry(extra='oneliner = "A snake_case name stays as written."'))
+    assert events(files.out)[0]["oneliner"] == "A snake_case name stays as written."

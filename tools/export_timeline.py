@@ -211,7 +211,7 @@ def guard(events):
         for key in ("title", "summary", "oneliner"):
             if isinstance(event.get(key), str) and check.PLACEHOLDER.search(event[key]):
                 raise ExportError(f"event {name}: capitalised bracket in {key} (write [sic] in lowercase); nothing written")
-            if isinstance(event.get(key), str) and content.MARKUP.search(event[key]):
+            if key in ("title", "summary") and isinstance(event.get(key), str) and content.MARKUP.search(event[key]):
                 raise ExportError(f"event {name}: {key} must be plain text (no *, _ or `); nothing written")
         checked_by = event.get("checked_by")
         if not isinstance(checked_by, str) or not content.CHECKED_BY.fullmatch(checked_by):
