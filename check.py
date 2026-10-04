@@ -3,8 +3,8 @@
 
     python3 check.py [_site] [--drafts]
 
-Every HTML page: balanced tags, a title, a description, exactly one h1, internal links, assets (src, srcset,
-style url()) and anchors that resolve, no leftover [PLACEHOLDER] text, and the framework's name spelled out.
+Every HTML page: balanced tags, no duplicate ids, a title, a description, exactly one h1, internal links, assets
+(src, srcset, style url()) and anchors that resolve, no leftover [PLACEHOLDER] text, and the framework's name spelled out.
 Every stylesheet: internal url() targets, such as the fonts, that resolve.
 Every .atom and .xml file: well-formed, links on the site's origin resolve, and feed text follows the same rules.
 Every built file and every tracked source file: none of the owner's private forbidden terms.
@@ -49,13 +49,15 @@ def forbidden_terms():
 class Page(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.stack, self.errors, self.links, self.ids = [], [], [], set()
+        self.stack, self.errors, self.links, self.ids, self.duplicate_ids = [], [], [], set(), []
         self.title, self.description, self.h1, self.text, self.attr_text = "", "", 0, [], []
         self._in_title = self._skip = False
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
         if a.get("id"):
+            if a["id"] in self.ids:
+                self.duplicate_ids.append(a["id"])
             self.ids.add(a["id"])
         for key in ("href", "src"):
             if a.get(key):
@@ -137,6 +139,8 @@ def check(site: Path, drafts: bool = False):
             say(f"unclosed tags: {page.stack}")
         for error in page.errors:
             say(error)
+        for dup in page.duplicate_ids:
+            say(f"duplicate id {dup!r}")
         if not page.title.strip():
             say("no <title>")
         if is_redirect:

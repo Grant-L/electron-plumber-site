@@ -19,7 +19,8 @@ make test       # unit tests (pytest)
 | `content/start.toml` | The Start here page's steps, one `[[step]]` each with a `target` only: `episode:N` or an existing page. Each step's words come from that page's title and meta description, or from the episode's data. |
 | `content/episodes/*.md` | Episode notes for **published** episodes: the same file that is published in the [notes repo](https://github.com/Grant-L/electron-plumber-notes). |
 | `content/timeline.toml` | The History page's events, one `[[event]]` each. **Generated** by `tools/export_timeline.py` from the Historian's confirmed, public entries; never edited by hand. A missing file means an empty timeline. |
-| `content/sources.bib` | A verbatim copy of the notes repo's `sources.bib`, with one header line naming the notes commit it was copied from. Every timeline source key must be in it. |
+| `content/sources.bib` | A verbatim copy of the notes repo's `sources.bib`, with one header line naming the notes commit it was copied from. Every timeline and episode source key must be in it. |
+| `content/errata.md` | A verbatim copy of the notes repo's `ERRATA.md`, with one header comment naming the notes commit it was copied from: the same commit as `content/sources.bib`. Its entries become the corrections-ledger rows on each episode page. |
 | `sitegen/` | Templates (`pages.py`), shared components (`html.py`), content loading and rules (`content.py`), a small Markdown subset (`md.py`), a small BibTeX subset (`bib.py`). |
 | `tools/` | `export_timeline.py`: the public-safe export from the Historian's confirmations into `content/timeline.toml` (`--check` exits 1 if the file would change). `make_assets.py`: the subset web fonts in `static/fonts/` and the AVIF/WebP copies of the hero and the portrait (`make assets`). |
 | `static/` | CSS, the one script, fonts, images, favicons. Copied to the site root as is. The fonts and the `.avif`/`.webp` images are made by `tools/make_assets.py`; commit them with the change that needs them. |
@@ -30,8 +31,8 @@ make test       # unit tests (pytest)
 
 ## Publishing an episode
 
-1. In `content/episodes.toml`, set `status = "published"` and fill in `youtube_id`, `date`, `runtime`, `excerpt` and `orientation`.
-2. Copy the published handout to `content/episodes/<slug>.md`.
+1. In `content/episodes.toml`, set `status = "published"` and fill in `youtube_id`, `date`, `runtime`, `excerpt` and `orientation`, and add one `[[episode.source]]` per source the episode cites (a historical episode needs at least one).
+2. Copy the published handout to `content/episodes/<slug>.md`. Re-copy `sources.bib` and `ERRATA.md` to `content/sources.bib` and `content/errata.md`, both from the same notes commit, with their header lines naming it.
 3. Add the next episode as `status = "in-production"` if its title may be public.
 4. Open a pull request. CI builds and checks it; merging deploys it.
 
@@ -47,7 +48,10 @@ The home page, the episode list, the short link (`/001`) and `/feed.atom`, an At
 - The owner's private list of terms that must never ship is checked against every built file and every tracked file. The list is not in this repo: it comes from `_private/forbidden.txt` locally and from the `FORBIDDEN_TERMS` repository secret in CI. Without it (a fork, for example) that one rule is skipped with a warning.
 - Unsupported Markdown (tables, nested lists) is a build error, not a silent mis-render.
 - Every History event has a frozen, year-prefixed id, a real date that is not in the future (or open-ended bounds instead), an era whose years contain it, a class and one to three threads from fixed lists, at least one source whose key is in `content/sources.bib`, and a verification record (`verified`, `checked_by`, `checked_date`). An event marked `verified = "primary"` cites at least one primary source. Events are in date order. Claims and episode links appear only once the episode is published.
-- `content/sources.bib` must start with `% Copied from Grant-L/electron-plumber-notes sources.bib at commit <40-character SHA>.`, and an unknown TeX macro or a malformed entry is an error. The build reads the bib only when `content/timeline.toml` has events, and then refuses a bad one. The tests (`tests/test_bib.py`) check the committed copy on every run, events or not.
+- An episode's `[[episode.source]]` tables follow the same rules as an event's, and go only with a published episode. A published historical episode needs at least one.
+- `content/errata.md` must start with `<!-- Copied from Grant-L/electron-plumber-notes ERRATA.md at commit <40-character SHA>. Do not edit here. -->`, naming the same commit as `content/sources.bib`. Each entry is a `## cor-NNN — Episode NNN (epNNN-cNN) — CORRECTED | RETRACTED | CLARIFIED` heading whose episode matches the claim, followed by exactly five bullets in order (Date, As aired, Correction, How it happened, Corrected via). Ids are unique; dates are real, not in the future, and newest first; no field is empty or `?`; the text has no links; the episode is published; `Corrected via` is `description`, `pinned-comment`, `erratum-short` or `segment epNNN` naming a known episode. With no entries the file must say `*No corrections to date.*`.
+- An episode page lists the claims an event or a correction names, each at its own `#epNNN-cNN` anchor, the History events that name the episode, and its corrections at `#cor-NNN`; each History claim links back to its anchor. When an episode has corrections, the ledger rows replace its notes' own Corrections text. No page has two elements with the same id.
+- `content/sources.bib` must start with `% Copied from Grant-L/electron-plumber-notes sources.bib at commit <40-character SHA>.`, and an unknown TeX macro or a malformed entry is an error. The build reads the bib when `content/timeline.toml` has events, an episode has sources, or `content/errata.md` exists, and then refuses a bad one. The tests (`tests/test_bib.py`) check the committed copy on every run, events or not.
 - The timeline export copies only allowlisted fields from entries the Historian marked confirmed and public. It refuses to read any `_private` path, refuses output carrying tracker-internal ids or the framework's acronym, runs the forbidden-term check before it writes, and gives byte-identical output for the same input.
 
 ## Working on the site

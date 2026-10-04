@@ -1,10 +1,15 @@
 """Load and validate the site's content: content/site.toml, content/episodes.toml, content/episodes/*.md,
-and the History timeline, content/timeline.toml, against its sources in content/sources.bib."""
+the History timeline, content/timeline.toml, against its sources in content/sources.bib, and the corrections in
+content/errata.md. link_episodes() then gives each live episode the events, claims and corrections that name it."""
 import datetime
 import re
+import struct
 import tomllib
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from check import ACRONYM, PLACEHOLDER, forbidden_terms
 
 from . import bib, md
 
@@ -42,6 +47,13 @@ PARTIAL_DATE = re.compile(r"(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?")
 # A public-safe display name: no digits, so bot ids and numbered handles cannot pass.
 CHECKED_BY = re.compile(r"[A-Z][A-Za-z .'-]{1,39}")
 CLAIM = re.compile(r"ep(\d{3})-c\d{2,}")
+IMAGE_DIR = "static/img/history"
+IMAGE_FILE = re.compile(r"static/img/history/[a-z0-9-]+\.(webp|jpg|svg)")
+IMAGE_LICENSES = ("public-domain", "cc0", "cc-by-4.0", "own-work")
+IMAGE_SOURCE = re.compile(r"https://commons\.wikimedia\.org/wiki/File:\S+")
+IMAGE_MAX_BYTES = 40_960
+HISTORY_IMAGES_MAX_BYTES = 200 * 1024
+ALT_OPENERS = ("image of", "picture of", "photo of")
 DOI = re.compile(r"10\.\d{4,9}/\S+")
 MD_LINK = re.compile(r"\]\(|<https?://")
 
@@ -63,8 +75,13 @@ class Episode:
     date: str = ""
     runtime: str = ""
     announce: bool = True
+    sources: list = field(default_factory=list)  # TOML [[episode.source]]
     draft: bool = False
     sections: list = field(default_factory=list)  # [(title, html)]
+    # Filled by link_episodes, for live episodes only: what the public records say about this episode.
+    events: list = field(default_factory=list, init=False)
+    claims: list = field(default_factory=list, init=False)
+    corrections: list = field(default_factory=list, init=False)
 
     @property
     def serial(self):
@@ -84,9 +101,12 @@ def load(root: Path, drafts: bool = False):
     raw = tomllib.loads((root / "content" / "episodes.toml").read_text(encoding="utf-8")).get("episode", [])
     episodes, seen, slugs = [], set(), set()
     for item in raw:
-        for internal in ("draft", "sections"):
+        for internal in ("draft", "sections", "sources", "events", "claims", "corrections"):
             if internal in item:
                 raise ContentError(f"episodes.toml: {internal!r} is not a content field")
+        item = dict(item)
+        if "source" in item:
+            item["sources"] = item.pop("source")
         if isinstance(item.get("date"), datetime.date):
             item["date"] = item["date"].isoformat()
         try:
@@ -101,6 +121,10 @@ def load(root: Path, drafts: bool = False):
                 raise ContentError(f"{where}: {key} must be a string")
         if not isinstance(ep.announce, bool):
             raise ContentError(f"{where}: announce must be true or false")
+        if not isinstance(ep.sources, list):
+            raise ContentError(f"{where}: source must be a list of [[episode.source]] tables")
+        if ep.sources and ep.status != "published":
+            raise ContentError(f"{where}: sources go with a published episode")
         if ep.arc and ep.arc not in ARCS:
             raise ContentError(f"{where}: unknown arc {ep.arc!r} (one of {', '.join(ARCS)})")
         if ep.status == "published" and not ep.arc:
@@ -242,6 +266,7 @@ class Event:
     checked_by: str
     checked_date: str
     date: str = ""
+    oneliner: str = ""  # the preview card's line; site.js reads it from data-oneliner
     date_basis: str = "event"
     end: str = ""
     circa: bool = False
@@ -252,6 +277,7 @@ class Event:
     episodes: list = field(default_factory=list)
     related: list = field(default_factory=list)
     sources: list = field(default_factory=list)  # TOML [[event.source]]
+    image: object = None  # TOML [event.image], an Image once loaded
 
     @property
     def precision(self):
@@ -260,6 +286,146 @@ class Event:
     @property
     def sort_key(self):
         return date_key(self.date or self.not_before or self.not_after)
+
+
+@dataclass
+class Image:
+    file: str
+    alt: str
+    author: str
+    title: str
+    license: str
+    width: int
+    height: int
+    source_url: str = ""
+    caption: str = ""
+
+
+def image_size(path: Path):
+    """(width, height) in pixels of a WebP or JPEG file, or the viewBox size of an SVG; None if unreadable."""
+    data = path.read_bytes()
+    if path.suffix == ".webp":
+        if data[:4] != b"RIFF" or data[8:12] != b"WEBP" or len(data) < 25:
+            return None
+        chunk = data[12:16]
+        if chunk == b"VP8 " and data[23:26] == b"\x9d\x01\x2a" and len(data) >= 30:
+            w, h = struct.unpack("<HH", data[26:30])
+            return w & 0x3FFF, h & 0x3FFF
+        if chunk == b"VP8L" and data[20] == 0x2F:
+            bits = int.from_bytes(data[21:25], "little")
+            return (bits & 0x3FFF) + 1, ((bits >> 14) & 0x3FFF) + 1
+        if chunk == b"VP8X" and len(data) >= 30:
+            return int.from_bytes(data[24:27], "little") + 1, int.from_bytes(data[27:30], "little") + 1
+        return None
+    if path.suffix == ".jpg":
+        if data[:2] != b"\xff\xd8":
+            return None
+        i = 2
+        while i + 9 <= len(data):
+            if data[i] != 0xFF:
+                return None
+            marker = data[i + 1]
+            if marker in (0xC0, 0xC2):
+                h, w = struct.unpack(">HH", data[i + 5:i + 9])
+                return w, h
+            if marker == 0x01 or 0xD0 <= marker <= 0xD7:
+                i += 2
+                continue
+            i += 2 + struct.unpack(">H", data[i + 2:i + 4])[0]
+        return None
+    if path.suffix == ".svg":
+        try:
+            box = ET.fromstring(data).get("viewBox", "").replace(",", " ").split()
+            w, h = float(box[2]), float(box[3])
+        except (ET.ParseError, IndexError, ValueError):
+            return None
+        return (int(w), int(h)) if w.is_integer() and h.is_integer() else None
+    return None
+
+
+def _image_text(value, where, name, terms):
+    if ACRONYM.search(value):
+        raise ContentError(f"{where}: image {name} must spell out the framework's name (three-letter acronym found)")
+    if PLACEHOLDER.search(value):
+        raise ContentError(f"{where}: image {name} has a capitalised bracket placeholder (write [sic] in lowercase)")
+    if any(t in value.lower() for t in terms):
+        raise ContentError(f"{where}: image {name} has a term that must never appear on a channel surface")
+
+
+def _image(raw, ev, where, root, terms, files):
+    """[event.image] as an Image. With files, the file itself is checked too: it exists, its size and pixel size."""
+    if not isinstance(raw, dict):
+        raise ContentError(f"{where}: image must be an [event.image] table")
+    try:
+        img = Image(**raw)
+    except TypeError as exc:
+        raise ContentError(f"{where}, image: {exc}") from None
+    for key in ("file", "alt", "author", "title", "license", "source_url", "caption"):
+        if not isinstance(getattr(img, key), str):
+            raise ContentError(f"{where}: image {key} must be a string")
+    for key in ("width", "height"):
+        value = getattr(img, key)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            raise ContentError(f"{where}: image {key} must be a positive integer")
+    m = IMAGE_FILE.fullmatch(img.file)
+    if not m:
+        raise ContentError(f"{where}: image file must look like {IMAGE_DIR}/<event-id>.webp (or .jpg, .svg), got {img.file!r}")
+    if img.license not in IMAGE_LICENSES:
+        raise ContentError(f"{where}: unknown image license {img.license!r} (one of {', '.join(IMAGE_LICENSES)})")
+    if m.group(1) == "svg" and img.license != "own-work":
+        raise ContentError(f"{where}: an .svg image must be own-work")
+    if img.source_url or img.license != "own-work":
+        if not IMAGE_SOURCE.fullmatch(img.source_url):
+            raise ContentError(f"{where}: image source_url must be an https://commons.wikimedia.org/wiki/File: page")
+
+    alt = img.alt
+    if not alt.strip() or len(alt) > 150 or set(alt) & set("\n\r<>"):
+        raise ContentError(f"{where}: image alt must be one line of 1 to 150 characters, without < or >")
+    if alt.strip().lower() in (img.title.strip().lower(), ev.title.strip().lower()):
+        raise ContentError(f"{where}: image alt must describe the picture, not repeat a title")
+    if alt.lower().startswith(ALT_OPENERS):
+        raise ContentError(f"{where}: image alt must not start with 'Image of', 'Picture of' or 'Photo of'")
+    for key in ("author", "title"):
+        if not getattr(img, key).strip() or set(getattr(img, key)) & set("\n\r"):
+            raise ContentError(f"{where}: image {key} must be one line of text")
+    if "caption" in raw and (not img.caption.strip() or len(img.caption) > 140 or set(img.caption) & set("\n\r")):
+        raise ContentError(f"{where}: image caption must be one line of at most 140 characters")
+    for key in ("alt", "caption", "title", "author"):
+        _image_text(getattr(img, key), where, key, terms)
+
+    if files:
+        path = root / img.file
+        if not path.is_file():
+            raise ContentError(f"{where}: image file {img.file} does not exist")
+        if path.stat().st_size > IMAGE_MAX_BYTES:
+            raise ContentError(f"{where}: image file is {path.stat().st_size} bytes, at most {IMAGE_MAX_BYTES}")
+        size = image_size(path)
+        if size is None:
+            raise ContentError(f"{where}: cannot read the pixel size of {img.file}")
+        if size != (img.width, img.height):
+            raise ContentError(f"{where}: image width and height say {img.width}x{img.height}, the file is {size[0]}x{size[1]}")
+    return img
+
+
+def _check_history_images(root: Path, events, files):
+    """Across the timeline: no shared files and, with files, no unreferenced file in the folder and the page's total
+    under its cap."""
+    used = {}
+    for ev in events:
+        if ev.image:
+            if ev.image.file in used:
+                raise ContentError(f"timeline.toml, event {ev.id}: image file {ev.image.file} is also used by {used[ev.image.file]}")
+            used[ev.image.file] = ev.id
+    if not files:
+        return
+    folder = root / IMAGE_DIR
+    present = sorted(p for p in folder.iterdir() if p.is_file()) if folder.is_dir() else []
+    for path in present:
+        if f"{IMAGE_DIR}/{path.name}" not in used:
+            raise ContentError(f"{IMAGE_DIR}/{path.name}: no event in timeline.toml uses this file")
+    total = sum(p.stat().st_size for p in present)
+    if total > HISTORY_IMAGES_MAX_BYTES:
+        raise ContentError(f"{IMAGE_DIR}: images total {total} bytes, at most {HISTORY_IMAGES_MAX_BYTES} for the History page")
 
 
 def date_key(text):
@@ -297,21 +463,70 @@ def _strings(value, where, name):
     return value
 
 
-def load_timeline(root: Path, episodes, today=None):
-    """content/timeline.toml as a list of Event, checked against content/sources.bib and the episodes.
-    A missing file means no timeline yet: []."""
-    path = root / "content" / "timeline.toml"
-    bib_path = root / "content" / "sources.bib"
-    if not path.is_file():
-        return []
-    today = today or datetime.date.today()
-    raw = tomllib.loads(path.read_text(encoding="utf-8")).get("event", [])
-    if not raw:
-        return []
+def load_bib(root: Path):
     try:
-        sources_bib = bib.load(bib_path)
+        return bib.load(root / "content" / "sources.bib")
     except bib.BibError as exc:
         raise ContentError(f"content/sources.bib: {exc}") from None
+
+
+def _sources(raw, where, sources_bib):
+    """[[event.source]] or [[episode.source]] tables as a list of Source, each checked against sources.bib."""
+    sources = []
+    for raw_source in raw:
+        if not isinstance(raw_source, dict):
+            raise ContentError(f"{where}: each source must be a table")
+        try:
+            src = Source(**raw_source)
+        except TypeError as exc:
+            raise ContentError(f"{where}, source: {exc}") from None
+        for key in ("key", "kind", "locator", "doi", "url", "note"):
+            if not isinstance(getattr(src, key), str):
+                raise ContentError(f"{where}, source {src.key!r}: {key} must be a string")
+        if src.key not in sources_bib:
+            raise ContentError(f"{where}: source key {src.key!r} is not in content/sources.bib")
+        if src.kind not in SOURCE_KINDS:
+            raise ContentError(f"{where}, source {src.key!r}: unknown kind {src.kind!r} (one of {', '.join(SOURCE_KINDS)})")
+        if any(s.key == src.key for s in sources):
+            raise ContentError(f"{where}: source {src.key!r} is listed twice")
+        if src.doi:
+            if not DOI.fullmatch(src.doi):
+                raise ContentError(f"{where}, source {src.key!r}: doi does not look like a DOI (10.NNNN/...)")
+            bib_doi = sources_bib[src.key].fields.get("doi", "")
+            if bib_doi and bib_doi.lower() != src.doi.lower():
+                raise ContentError(f"{where}, source {src.key!r}: doi disagrees with sources.bib")
+        if src.url and not src.url.startswith("https://"):
+            raise ContentError(f"{where}, source {src.key!r}: url must start with https://")
+        src.entry = sources_bib[src.key]
+        sources.append(src)
+    return sources
+
+
+def validate_episode_sources(root: Path, episodes):
+    """Check each published episode's [[episode.source]] against sources.bib. A historical episode needs at least one.
+    The bib is read only when some episode has sources."""
+    for ep in episodes:
+        if ep.status == "published" and ep.arc == "historical" and not ep.sources:
+            raise ContentError(f"episodes.toml, episode {ep.number}: a published historical episode needs at least one [[episode.source]]")
+    if not any(ep.sources for ep in episodes):
+        return
+    sources_bib = load_bib(root)
+    for ep in episodes:
+        ep.sources = _sources(ep.sources, f"episodes.toml, episode {ep.number}", sources_bib)
+
+
+def load_timeline(root: Path, episodes, today=None, files=True):
+    """content/timeline.toml as a list of Event, checked against content/sources.bib and the episodes.
+    A missing file means no timeline yet: []. files=False skips the checks that read static/img/history/,
+    for a caller that has the data but not the site's files."""
+    path = root / "content" / "timeline.toml"
+    raw = tomllib.loads(path.read_text(encoding="utf-8")).get("event", []) if path.is_file() else []
+    if not raw:
+        _check_history_images(root, [], files)
+        return []
+    today = today or datetime.date.today()
+    sources_bib = load_bib(root)
+    terms = forbidden_terms()
     numbers = {e.number: e for e in episodes}
 
     events, ids = [], set()
@@ -380,6 +595,21 @@ def load_timeline(root: Path, episodes, today=None):
             raise ContentError(f"{where}: summary must be 1 to 600 characters")
         if MD_LINK.search(ev.summary):
             raise ContentError(f"{where}: summary must not contain links")
+        if "oneliner" in item:
+            line = ev.oneliner
+            if not isinstance(line, str) or not line.strip() or set(line) & set("\n\r<>"):
+                raise ContentError(f"{where}: oneliner must be one line of plain text")
+            ev.oneliner = line = line.strip()
+            if len(line) > 140:
+                raise ContentError(f"{where}: oneliner is longer than 140 characters ({len(line)})")
+            if not line.endswith((".", "?", "!")):
+                raise ContentError(f"{where}: oneliner must end with . ? or !")
+            if line == ev.title.strip():
+                raise ContentError(f"{where}: oneliner must not repeat the title")
+            if ACRONYM.search(line):
+                raise ContentError(f"{where}: oneliner must spell out the framework's name (three-letter acronym found)")
+            if PLACEHOLDER.search(line):
+                raise ContentError(f"{where}: oneliner has a capitalised bracket placeholder (write [sic] in lowercase)")
         _strings(ev.people, where, "people")
 
         # Vocabularies.
@@ -401,34 +631,7 @@ def load_timeline(root: Path, episodes, today=None):
         # Sources.
         if not isinstance(ev.sources, list) or not ev.sources:
             raise ContentError(f"{where}: needs at least one [[event.source]]")
-        sources = []
-        for raw_source in ev.sources:
-            if not isinstance(raw_source, dict):
-                raise ContentError(f"{where}: each source must be a table")
-            try:
-                src = Source(**raw_source)
-            except TypeError as exc:
-                raise ContentError(f"{where}, source: {exc}") from None
-            for key in ("key", "kind", "locator", "doi", "url", "note"):
-                if not isinstance(getattr(src, key), str):
-                    raise ContentError(f"{where}, source {src.key!r}: {key} must be a string")
-            if src.key not in sources_bib:
-                raise ContentError(f"{where}: source key {src.key!r} is not in content/sources.bib")
-            if src.kind not in SOURCE_KINDS:
-                raise ContentError(f"{where}, source {src.key!r}: unknown kind {src.kind!r} (one of {', '.join(SOURCE_KINDS)})")
-            if any(s.key == src.key for s in sources):
-                raise ContentError(f"{where}: source {src.key!r} is listed twice")
-            if src.doi:
-                if not DOI.fullmatch(src.doi):
-                    raise ContentError(f"{where}, source {src.key!r}: doi does not look like a DOI (10.NNNN/...)")
-                bib_doi = sources_bib[src.key].fields.get("doi", "")
-                if bib_doi and bib_doi.lower() != src.doi.lower():
-                    raise ContentError(f"{where}, source {src.key!r}: doi disagrees with sources.bib")
-            if src.url and not src.url.startswith("https://"):
-                raise ContentError(f"{where}, source {src.key!r}: url must start with https://")
-            src.entry = sources_bib[src.key]
-            sources.append(src)
-        ev.sources = sources
+        ev.sources = sources = _sources(ev.sources, where, sources_bib)
         if ev.verified == "primary" and not any(s.kind == "primary" for s in sources):
             raise ContentError(f"{where}: verified = \"primary\" needs at least one source with kind = \"primary\"")
 
@@ -452,6 +655,8 @@ def load_timeline(root: Path, episodes, today=None):
             if number in claimed:
                 raise ContentError(f"{where}: episode {number} is already linked through a claim")
         _strings(ev.related, where, "related")
+        if ev.image is not None:
+            ev.image = _image(ev.image, ev, where, root, terms, files)
         events.append(ev)
 
     for ev in events:
@@ -467,4 +672,128 @@ def load_timeline(root: Path, episodes, today=None):
             left.add(before.era)
             if ev.era in left:
                 raise ContentError(f"timeline.toml, event {ev.id}: the {ev.era!r} era is not contiguous in the file")
+    _check_history_images(root, events, files)
     return events
+
+
+# ---------------------------------------------------------------- corrections: content/errata.md
+ERRATA_HEADER = re.compile(r"<!-- Copied from Grant-L/electron-plumber-notes ERRATA\.md at commit ([0-9a-f]{40})\. Do not edit here\. -->")
+ERRATA_ENTRY = re.compile(r"## (cor-\d{3,}) \u2014 Episode (\d{3}) \((ep\d{3}-c\d{2,})\) \u2014 (CORRECTED|RETRACTED|CLARIFIED)")
+# The five bullets of an entry, in the order the notes repo's publish step writes them.
+ERRATA_FIELDS = (("date", "Date"), ("was", "As aired"), ("now", "Correction"), ("why", "How it happened"),
+                 ("vehicle", "Corrected via"))
+ERRATA_NONE = "*No corrections to date.*"
+CORRECTION_KINDS = {"corrected": "Corrected", "retracted": "Retracted", "clarified": "Clarified"}
+VEHICLE = re.compile(r"description|pinned-comment|erratum-short|segment ep(\d{3})")
+
+
+@dataclass
+class Correction:
+    id: str        # cor-001
+    episode: int
+    claim: str     # ep001-c03
+    kind: str      # a CORRECTION_KINDS key
+    date: str      # YYYY-MM-DD
+    was: str       # As aired, inline HTML
+    now: str       # Correction, inline HTML
+    why: str       # How it happened, inline HTML
+    vehicle: str   # description | pinned-comment | erratum-short | segment epNNN
+
+
+def load_errata(root: Path, episodes, today=None):
+    """content/errata.md, the notes repo's ERRATA.md copied verbatim, as a list of Correction, newest first.
+    A missing file means no corrections yet: []."""
+    path = root / "content" / "errata.md"
+    if not path.is_file():
+        return []
+    today = today or datetime.date.today()
+    lines = path.read_text(encoding="utf-8").splitlines()
+    m = ERRATA_HEADER.fullmatch(lines[0]) if lines else None
+    if not m:
+        raise ContentError("content/errata.md: line 1 must be '<!-- Copied from Grant-L/electron-plumber-notes ERRATA.md "
+                           "at commit <40-character SHA>. Do not edit here. -->'")
+    if m.group(1) != load_bib(root).sha:
+        raise ContentError("content/errata.md: copied from a different notes commit than content/sources.bib; "
+                           "re-copy both from the same notes commit")
+
+    entries, current = [], None
+    for n, line in enumerate(lines[1:], 2):
+        if line.startswith("## "):
+            current = (n, line, [])
+            entries.append(current)
+        elif current is not None and line.strip():
+            current[2].append((n, line))
+        elif current is None and line.startswith(("- ", "* ")):
+            raise ContentError(f"content/errata.md, line {n}: a bullet before the first '## cor-NNN' entry")
+    if not entries and ERRATA_NONE not in (line.strip() for line in lines):
+        raise ContentError(f"content/errata.md: no entries, so it must say {ERRATA_NONE!r}")
+
+    numbers = {e.number: e for e in episodes}
+    prefixes = [f"- **{label}:**" for _, label in ERRATA_FIELDS]
+    errata = []
+    for n, heading, body in entries:
+        m = ERRATA_ENTRY.fullmatch(heading)
+        if not m:
+            raise ContentError(f"content/errata.md, line {n}: a heading must look like "
+                               f"'## cor-001 \u2014 Episode 001 (ep001-c03) \u2014 CORRECTED', got {heading[:80]!r}")
+        cor_id, number, claim, kind = m.groups()
+        where = f"content/errata.md, {cor_id}"
+        if any(c.id == cor_id for c in errata):
+            raise ContentError(f"{where}: duplicate id")
+        if number != claim[2:5]:
+            raise ContentError(f"{where}: Episode {number} does not match claim {claim}")
+        ep = numbers.get(int(number))
+        if ep is None:
+            raise ContentError(f"{where}: Episode {number} is not in episodes.toml")
+        if ep.status != "published":
+            raise ContentError(f"{where}: Episode {number} is not published")
+
+        for i, prefix in enumerate(prefixes):
+            if i >= len(body) or not (body[i][1] + " ").startswith(prefix + " "):
+                at = f"line {body[i][0]}" if i < len(body) else "the end of the entry"
+                raise ContentError(f"{where}: expected '{prefix}' at {at}; an entry is exactly five bullets, in order: "
+                                   + ", ".join(label for _, label in ERRATA_FIELDS))
+        if len(body) > len(prefixes):
+            raise ContentError(f"{where}, line {body[len(prefixes)][0]}: unexpected {body[len(prefixes)][1][:40]!r} after the five bullets")
+        values = {name: body[i][1][len(prefixes[i]):].strip() for i, (name, _) in enumerate(ERRATA_FIELDS)}
+        for name, label in ERRATA_FIELDS:
+            if values[name] in ("", "?"):
+                raise ContentError(f"{where}: {label} is empty or '?'")
+            if name in ("was", "now", "why") and MD_LINK.search(values[name]):
+                raise ContentError(f"{where}: {label} must not contain links")
+
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", values["date"]):
+            raise ContentError(f"{where}: Date must be a full date, YYYY-MM-DD")
+        _partial_date(values["date"], where, "Date", today)
+        if errata and values["date"] > errata[-1].date:
+            raise ContentError(f"{where}: dated {values['date']}, after {errata[-1].id} above it; entries go newest first")
+        vm = VEHICLE.fullmatch(values["vehicle"])
+        if not vm:
+            raise ContentError(f"{where}: unknown Corrected via {values['vehicle']!r} "
+                               "(description, pinned-comment, erratum-short or segment epNNN)")
+        if vm.group(1) and int(vm.group(1)) not in numbers:
+            raise ContentError(f"{where}: Corrected via {values['vehicle']!r} names an episode that is not in episodes.toml")
+
+        errata.append(Correction(id=cor_id, episode=int(number), claim=claim, kind=kind.lower(), date=values["date"],
+                                 was=md.inline(values["was"]), now=md.inline(values["now"]), why=md.inline(values["why"]),
+                                 vehicle=values["vehicle"]))
+    return errata
+
+
+def link_episodes(episodes, timeline, errata):
+    """For each live episode, what the public records say about it: the History events that name it (in timeline
+    order), its claims that an event or a correction names (sorted), and its corrections (newest first)."""
+    for ep in episodes:
+        ep.events, ep.claims, ep.corrections = [], [], []
+        if not ep.live:
+            continue
+        prefix = f"ep{ep.number:03d}-"
+        claims = set()
+        for ev in timeline:
+            mine = [c for c in ev.claims if c.startswith(prefix)]
+            if mine or ep.number in ev.episodes:
+                ep.events.append(ev)
+                claims.update(mine)
+        ep.corrections = [c for c in errata if c.episode == ep.number]
+        claims.update(c.claim for c in ep.corrections)
+        ep.claims = sorted(claims, key=lambda c: int(c.split("-c")[1]))

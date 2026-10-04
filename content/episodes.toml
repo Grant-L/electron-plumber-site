@@ -5,6 +5,7 @@
 # status = "published":     needs arc (historical | speculative | practical), youtube_id, date (YYYY-MM-DD), excerpt, and the handout at
 #                           content/episodes/<slug>.md (the same file as the published episode notes in
 #                           the notes repo). The build refuses a published episode without one.
+# [[episode.source]]:       published only; key (in content/sources.bib), kind (primary | secondary), optional locator, doi, url, note. A historical episode needs at least one.
 
 [[episode]]
 number = 1

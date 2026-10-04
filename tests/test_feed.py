@@ -6,6 +6,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
+from conftest import EP1_SOURCE, copy_static
 
 import build
 import check
@@ -27,24 +28,23 @@ GOLDEN = """<?xml version="1.0" encoding="utf-8"?>
 
 
 def episode(number=1, title="Fixture title", date="2026-11-01", excerpt="A fixture excerpt.", status="published"):
-    extra = f'youtube_id = "abcdefghijk"\ndate = "{date}"\nexcerpt = "{excerpt}"\n' if status == "published" else ""
+    extra = f'youtube_id = "abcdefghijk"\ndate = "{date}"\nexcerpt = "{excerpt}"\n' + EP1_SOURCE if status == "published" else ""
     return f'[[episode]]\nnumber = {number}\nslug = "{number:03d}-x"\ntitle = "{title}"\narc = "historical"\nstatus = "{status}"\n' + extra
 
 
 @pytest.fixture
-def fixture_build(content_root, tmp_path, monkeypatch):
+def fixture_build(timeline_root, tmp_path):
     """Build the site from fixture episodes.toml text. Returns (built site path, parsed feed root)."""
-    (content_root / "static").symlink_to(build.ROOT / "static")
-    monkeypatch.setattr(build, "ROOT", content_root)
+    copy_static(timeline_root)
 
     def run(episodes_toml, drafts=False):
-        (content_root / "content" / "episodes.toml").write_text(episodes_toml, encoding="utf-8")
+        (timeline_root / "content" / "episodes.toml").write_text(episodes_toml, encoding="utf-8")
         for block in episodes_toml.split("[[episode]]")[1:]:
             if 'status = "published"' in block:
                 number = int(re.search(r"number = (\d+)", block)[1])
-                (content_root / "content" / "episodes" / f"{number:03d}-x.md").write_text("## Notes\n\nFixture notes.\n", encoding="utf-8")
+                (timeline_root / "content" / "episodes" / f"{number:03d}-x.md").write_text("## Notes\n\nFixture notes.\n", encoding="utf-8")
         out = tmp_path / ("drafts" if drafts else "site")
-        build.build(out, drafts=drafts)
+        build.build(out, drafts=drafts, root=timeline_root)
         return out, ET.parse(out / "feed.atom").getroot()
     return run
 
