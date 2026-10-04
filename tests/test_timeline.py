@@ -704,3 +704,14 @@ def test_site_js_follows_the_card_rules():
     assert 'role: "group"' in js and '"aria-labelledby", "tl-card-title"' in js
     assert 'setAttribute("aria-controls", card.id)' in js and "ariaExpanded: false" in js
     assert 'fold.setAttribute("aria-controls"' in js
+
+
+def test_focus_leaving_the_axis_closes_the_card_without_moving_focus():
+    """Above 560px the card covers the filters, so focus outside the axis must not leave it open over them."""
+    js = (ROOT / "static" / "js" / "site.js").read_text(encoding="utf-8")
+    handler = re.search(r'on\(axis, "focusout", \(ev\) => \{(.*?)\}\);\n', js)
+    assert handler, "no focusout handler on the axis"
+    body = handler.group(1)
+    assert "ev.relatedTarget &&" in body and "!axis.contains(ev.relatedTarget)" in body
+    assert "close()" in body and "close(true)" not in body and ".focus(" not in body
+    assert "box" not in body and "chip" not in body

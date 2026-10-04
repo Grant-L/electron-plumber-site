@@ -302,6 +302,8 @@
   });
   on(shut, "click", () => close(true));
   on(d, "click", (ev) => { if (!axis.contains(ev.target)) { close(); } });
+  // The card covers the filters, so focus there closes it. Null: a window blur, or a click (handled above).
+  on(axis, "focusout", (ev) => { if (ev.relatedTarget && !axis.contains(ev.relatedTarget)) { close(); } });
   on(read, "click", (ev) => {
     if (!plain(ev)) { return; }
     const li = open.mark.li;
