@@ -389,8 +389,9 @@ def history(ctx: Ctx):
         sources = "".join(_citation(s.entry, s) for s in ev.sources)
         related = ('<p class="small tl__related">See also ' + ", ".join(f'<a href="#{esc(r)}">{md.plain(titles[r])}</a>' for r in ev.related)
                    + "</p>") if ev.related else ""
+        oneliner = f' data-oneliner="{esc(ev.oneliner)}"' if ev.oneliner else ""
         items += (f'<li class="tl" id="{esc(ev.id)}" data-era="{esc(ev.era)}" data-thread="{esc(" ".join(ev.thread))}" '
-                  f'data-class="{esc(ev.cls)}" data-verified="{esc(ev.verified)}" data-year="{ev.sort_key[0]}"><article>'
+                  f'data-class="{esc(ev.cls)}" data-verified="{esc(ev.verified)}" data-year="{ev.sort_key[0]}"{oneliner}><article>'
                   f'<p class="mono tl__date">{_when(ev)}</p>'
                   f'<h3 class="h3 tl__title"><a href="#{esc(ev.id)}">{md.plain(ev.title)}</a></h3>'
                   f'<p class="mono tl__meta">{meta}</p>'
