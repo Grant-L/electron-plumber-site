@@ -253,6 +253,7 @@ body[data-arc]::before { content: ""; position: fixed; left: 0; top: 0; bottom: 
 .tl-card__source { margin-top: 8px; font-size: 12px; overflow-wrap: anywhere; }
 .tl-card__read { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 4px; color: var(--sky); font: 500 13px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; }
 .tl__back { display: flex; width: 100%; margin-top: 26px; }
+.tl article:has(> .tl__back) > .tl__figure { margin-bottom: 26px; }
 @media (pointer: coarse) {
   .tl-axis { --hit: 44px; }
 }
@@ -392,6 +393,7 @@ a.trow:hover .trow__name { color: var(--sky); }
 }
 @media (max-width: 560px) {
   .tl__figure { float: none; margin: 0; }
+  .tl article:has(> .tl__back) > .tl__figure { margin-bottom: 0; }
   .row > .inner, .row--tight > .inner, .row--tighter > .inner { padding-top: 56px; padding-bottom: 56px; }
   .grid--4 { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .cluster--stack { flex-direction: column; align-items: stretch; gap: 12px; }
