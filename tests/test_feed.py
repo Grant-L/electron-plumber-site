@@ -6,11 +6,11 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
-from conftest import EP1_SOURCE, copy_static
+from conftest import EP1_SOURCE, ROOT, copy_static
 
 import build
 import check
-from sitegen import feed
+from sitegen import content, feed
 
 A = "{http://www.w3.org/2005/Atom}"
 
@@ -50,13 +50,16 @@ def fixture_build(timeline_root, tmp_path):
 
 
 def test_todays_feed_is_valid_empty_and_exact(tmp_path):
+    _, episodes = content.load(ROOT)
+    live = [e for e in episodes if e.live]
     build.build(tmp_path / "site")
     path = tmp_path / "site" / "feed.atom"
     root = ET.parse(path).getroot()
-    assert root.tag == f"{A}feed" and root.findall(f"{A}entry") == []
-    assert root.findtext(f"{A}updated") == feed.FEED_EPOCH
+    assert root.tag == f"{A}feed" and len(root.findall(f"{A}entry")) == len(live)
     assert [x.get("href") for x in root.findall(f"{A}link") if x.get("rel") == "self"] == ["https://electron-plumber.com/feed.atom"]
-    assert path.read_bytes() == GOLDEN.encode("utf-8")
+    if not live:
+        assert root.findtext(f"{A}updated") == feed.FEED_EPOCH
+        assert path.read_bytes() == GOLDEN.encode("utf-8")
     assert check.check(tmp_path / "site") == []
 
 

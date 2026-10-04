@@ -37,19 +37,24 @@ def _write_start(root, text):
 
 # ------------------------------------------------------------------ the built page
 def test_the_build_writes_start_and_passes_the_gate(tmp_path):
+    _, episodes = content.load(ROOT)
     build.build(tmp_path / "site")
     assert (tmp_path / "site" / "start" / "index.html").is_file()
     assert check.check(tmp_path / "site") == []
-    assert len(list((tmp_path / "site").rglob("*.html"))) == 13
+    # Each published episode adds its page and its /NNN short link.
+    assert len(list((tmp_path / "site").rglob("*.html"))) == 13 + 2 * sum(e.live for e in episodes)
 
 
 def test_one_h1_and_three_steps_in_file_order(tmp_path):
+    _, episodes = content.load(ROOT)
+    ep1 = next(e for e in episodes if e.number == 1)
     build.build(tmp_path / "site")
     html = (tmp_path / "site" / "start" / "index.html").read_text(encoding="utf-8")
     assert re.findall(r"<h1[^>]*>(.*?)</h1>", html) == ["Start here"]
     steps = _steps(html)
     assert len(steps) == 3
-    assert "Episode 001" in steps[0] and 'href="../history/"' in steps[1] and 'href="../episodes/"' in steps[2]
+    assert (f'href="../episodes/{ep1.slug}/"' if ep1.live else "Episode 001") in steps[0]
+    assert 'href="../history/"' in steps[1] and 'href="../episodes/"' in steps[2]
     assert all('<div class="trow__n" aria-hidden="true">' in s for s in steps)
 
 
