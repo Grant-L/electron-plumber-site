@@ -134,7 +134,7 @@ def test_with_only_a_fulltext_url_the_line_shows_just_free_full_text(timeline_ro
     bib = fixture_bib().replace("  doi = {10.0000/fixture.hamilton1865letter}\n", "").replace("year = {2000},\n}", "year = {2000}\n}")
     (timeline_root / "content" / "sources.bib").write_text(bib, encoding="utf-8")
     li = primary_li(render(timeline_root, with_source(EVENT, f'  fulltext_url = "{FULLTEXT}"\n')))
-    assert li.endswith(f'(2000). <a href="{FULLTEXT}">Free full text</a> <span class="mono">Primary</span>')
+    assert li.endswith(f'(2000). <a class="tl__read" href="{FULLTEXT}">Free full text</a> <span class="mono">Primary</span>')
     assert "Original" not in li and "&middot;" not in li
 
 

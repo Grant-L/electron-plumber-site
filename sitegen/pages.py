@@ -335,7 +335,8 @@ def _reading_links(entry, src):
         label = "Original letter" if f["title"].lower().startswith("letter ") else "Original"
         links.append(f'<a class="tl__read" href="{esc(url)}">{label}</a>')
     if src.fulltext_url:
-        links.append(f'<a href="{esc(src.fulltext_url)}">Free full text</a>')
+        cls = "" if links else ' class="tl__read"'
+        links.append(f'<a{cls} href="{esc(src.fulltext_url)}">Free full text</a>')
     return " &middot; ".join(links)
 
 
