@@ -94,9 +94,15 @@ def card(ctx, serial, title, *, youtube_id="", dim=False, nxt=False):
             f'<div class="card__title">{title}</div><div class="card__serial">{serial}</div></div>{play}</div>')
 
 
-def row(label, body, mod="", rail=None):
-    """A spec-sheet row: mono label in the left rail, content to its right."""
-    rail_html = rail if rail is not None else (kicker(label) if label else "")
+def row(label, body, mod="", rail=None, heading=False):
+    """A spec-sheet row: mono label in the left rail, content to its right. With heading=True the rail is the
+    section's h2, for a row whose body has no heading of its own; it looks the same as the plain rail."""
+    if heading and rail is not None:
+        rail_html = f'<h2 class="row__h">{rail}</h2>'
+    elif heading and label:
+        rail_html = f'<h2 class="kicker">{label}</h2>'
+    else:
+        rail_html = rail if rail is not None else (kicker(label) if label else "")
     return (f'<section class="row {mod}"><div class="inner"><div class="row__rail">{rail_html}</div>'
             f'<div class="row__body">{body}</div></div></section>')
 

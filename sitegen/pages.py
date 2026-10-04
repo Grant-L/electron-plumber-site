@@ -94,7 +94,7 @@ def home(ctx: Ctx):
         f'<div class="author">{_portrait(ctx)}<div class="stack"><div class="quote">{QUOTE_AUTHOR}</div>'
         f'<div class="name g28">{esc(s["author"])}</div>'
         f'<div class="mono">Staff electrical engineer, grid-scale energy storage. Views my own.</div>'
-        f'<div class="g12">{arrow("About", ctx.to("about/"))}</div></div></div>'))
+        f'<div class="g12">{arrow("About", ctx.to("about/"))}</div></div></div>'), heading=True)
 
     def record(label, text):
         return f'<div class="stack">{kicker(label, "kicker--sm")}<p class="small g12">{text}</p></div>'
@@ -108,7 +108,7 @@ def home(ctx: Ctx):
 
     disclosure = row("", (f'<div class="quote quote--lg">{RESEARCH_HANDOFF}</div>'
                           f'<div class="g28">{arrow("The speculative program", ctx.to("research/"), "arrow--orange")}</div>'),
-                     "row--tighter", rail=badge("speculative"))
+                     "row--tighter", rail=badge("speculative"), heading=True)
 
     return page(ctx, title=s["title"], active=None,
                 description="One question, pursued honestly: What is an Electron? History told from the original papers, "
@@ -392,13 +392,13 @@ def history(ctx: Ctx):
         items += (f'<li class="tl" id="{esc(ev.id)}" data-era="{esc(ev.era)}" data-thread="{esc(" ".join(ev.thread))}" '
                   f'data-class="{esc(ev.cls)}" data-verified="{esc(ev.verified)}" data-year="{ev.sort_key[0]}"><article>'
                   f'<p class="mono tl__date">{_when(ev)}</p>'
-                  f'<h2 class="h3 tl__title"><a href="#{esc(ev.id)}">{md.plain(ev.title)}</a></h2>'
+                  f'<h3 class="h3 tl__title"><a href="#{esc(ev.id)}">{md.plain(ev.title)}</a></h3>'
                   f'<p class="mono tl__meta">{meta}</p>'
                   f'<p class="small tl__summary">{md.plain(ev.summary)}</p>{people}'
                   f'<ol class="tl__sources">{sources}</ol>'
                   f'<p class="mono tl__checked">Checked {_time(ev.checked_date)}</p>'
                   f'{_episode_links(ctx, ev)}{related}</article></li>')
-    timeline = row("Timeline", f'<ol class="timeline">{items}</ol>', "row--tight")
+    timeline = row("Timeline", f'<ol class="timeline">{items}</ol>', "row--tight", heading=True)
     return page(ctx, title=title, active=title, description=description,
                 body=head + _history_filters(events) + timeline + subscribe(ctx))
 
@@ -429,7 +429,7 @@ def research(ctx: Ctx):
         'Z&#8320; = &radic;(&mu;&#8320;/&epsilon;&#8320;) &asymp; 377 &Omega;, and a hard yield ceiling above which it snaps.</p>'
         '<p class="prose prose--lg g24">The wager is that the electron-plumber habit, reading electrical phenomena as mechanical '
         'stress in one medium, is the correct disciplinary frame. The point of the work is to find out where that wager breaks.</p>'),
-        "row--tight")
+        "row--tight", heading=True)
 
     cards = []
 
@@ -468,7 +468,7 @@ def research(ctx: Ctx):
         + axiom("02", "Topo-kinematic isomorphism", "Charge is a geometric dislocation: [Q] &equiv; [L]. Topology encodes electromagnetism.")
         + axiom("03", "Gravity", "G sets the Machian boundary impedance.")
         + axiom("04", "Saturation", "S(A) = &radic;(1 &minus; (A/A<sub>yield</sub>)<sup>2</sup>): a universal yield kernel bounding all LC modes.")),
-        "row--tight")
+        "row--tight", heading=True)
 
     formval = row("Organizing principle", (
         '<h2 class="h2">Form is derived. Value is imported.</h2>'
@@ -491,7 +491,7 @@ def research(ctx: Ctx):
         + doc("The code", "Solvers, tests and the verification gate.", "GitHub", core)
         + doc("The pre-registration ledger", "The birefringence prediction and its kill criterion, hashed and Bitcoin-timestamped "
               "before any pump-on data exists.", "GitHub",
-              core + "/tree/main/claim-prereg-ots")), "row--tight")
+              core + "/tree/main/claim-prereg-ots")), "row--tight", heading=True)
 
     title, description = PAGE_TEXT["research/"]
     return page(ctx, title=title, active=title, arc="speculative", description=description,
@@ -552,7 +552,7 @@ def records(ctx: Ctx):
         '<div class="grid grid--3">'
         + lic("Sources", "All on-camera citations live in one BibTeX file, free to reuse.", "sources.bib", notes + "/blob/main/sources.bib")
         + lic("Episode notes", "CC BY-NC-ND 4.0: share with attribution; no commercial use; no derivatives.", "The notes repo", notes)
-        + lic("Research code", "Apache-2.0.", "AVE-Core on GitHub", ctx.site["core_repo"]) + '</div>'), "row--tight")
+        + lic("Research code", "Apache-2.0.", "AVE-Core on GitHub", ctx.site["core_repo"]) + '</div>'), "row--tight", heading=True)
 
     title, description = PAGE_TEXT[RECORDS[1]]
     return page(ctx, title=title, active=title, description=description, body=head + labels + claim + ledger + sources)

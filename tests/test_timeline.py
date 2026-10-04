@@ -508,7 +508,7 @@ def test_a_private_term_in_an_event_is_caught(tmp_path, timeline_root, monkeypat
 # The fixture EVENT as main rendered it before the axis: the axis may only add data-year and data-from/data-to.
 GOLDEN_LI = ('<li class="tl" id="1843-hamilton-quaternions" data-era="ether" data-thread="vectors-quaternions" data-class="theory" '
              'data-verified="primary"><article><p class="mono tl__date"><time datetime="1843-10-16">16 October 1843</time></p>'
-             '<h2 class="h3 tl__title"><a href="#1843-hamilton-quaternions">Fixture title</a></h2><p class="mono tl__meta">'
+             '<h3 class="h3 tl__title"><a href="#1843-hamilton-quaternions">Fixture title</a></h3><p class="mono tl__meta">'
              "Fields and ether, 1840\u20131904 &middot; Theory &middot; Vectors and quaternions &middot; Checked against the original</p>"
              '<p class="small tl__summary">Fixture summary.</p><ol class="tl__sources"><li><cite>Fixture entry hamilton1865letter</cite>. '
              "Ann Author and Will Writer. Fixture Journal 1, 1\u20132 (2000). "
@@ -519,8 +519,9 @@ GOLDEN_ERA_CHIPS = ('<div class="filter__chips" role="group" aria-label="Filter 
                     'data-value="all" aria-pressed="true">All eras</button><button class="chip" type="button" data-value="ether" '
                     'aria-pressed="false">Fields and ether</button></div>')
 AXIS_ATTRS = re.compile(r' data-(?:year|from|to)="[^"]*"')
-# Bytes on main before the axis; the CSS baseline also counts the episode-page ledger rules (925 bytes).
-JS_BASELINE, JS_GZIP_BASELINE, CSS_BASELINE = 3697, 1441, 24194 + 925
+# Bytes on main before the axis; the CSS baseline also counts the episode-page ledger rules (925 bytes) and the
+# .row__h rule for a rail that is its section's heading (76 bytes).
+JS_BASELINE, JS_GZIP_BASELINE, CSS_BASELINE = 3697, 1441, 24194 + 925 + 76
 
 
 def test_each_entry_carries_its_sort_key_year(timeline_root):
