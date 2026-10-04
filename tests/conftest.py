@@ -22,6 +22,7 @@ def fixture_bib(keys=FIXTURE_KEYS):
             + entries)
 
 
+IN_PRODUCTION_EP1 = '[[episode]]\nnumber = 1\nslug = "001-x"\ntitle = "X"\nstatus = "in-production"\n'
 PUBLISHED_EP1 = ('[[episode]]\nnumber = 1\nslug = "001-x"\ntitle = "X"\narc = "historical"\nstatus = "published"\n'
                  'youtube_id = "abcdefghijk"\ndate = "2026-01-01"\nruntime = "18 min"\nexcerpt = "An excerpt."\n')
 EP1_SOURCE = '\n  [[episode.source]]\n  key = "kelvin1867vortex"\n  kind = "primary"\n'
@@ -46,28 +47,45 @@ def fixture_errata(entries=(), sha=FIXTURE_SHA):
 @pytest.fixture
 def content_root(tmp_path):
     """A writable copy of content/ under tmp_path, for tests that change the data. Returns the new root."""
-    shutil.copytree(ROOT / "content", tmp_path / "content")
-    (tmp_path / "content" / "episodes").mkdir(exist_ok=True)  # git does not track an empty folder
-    return tmp_path
+    return make_content_root(tmp_path)
 
 
 @pytest.fixture
 def timeline_root(content_root):
     """content_root with the fixture sources.bib and errata.md in place, both from the fixture commit, and no timeline yet."""
-    (content_root / "content" / "sources.bib").write_text(fixture_bib(), encoding="utf-8")
-    (content_root / "content" / "errata.md").write_text(fixture_errata(), encoding="utf-8")
-    (content_root / "content" / "timeline.toml").unlink(missing_ok=True)
-    return content_root
+    return make_timeline_root(content_root)
 
 
 @pytest.fixture
 def published_root(timeline_root):
     """timeline_root with Episode 001 published (one source, minimal notes) and a copy of static/, so that
     build.build(out, root=published_root) builds a complete fixture site."""
-    (timeline_root / "content" / "episodes.toml").write_text(PUBLISHED_EP1 + EP1_SOURCE, encoding="utf-8")
-    (timeline_root / "content" / "episodes" / "001-x.md").write_text(NOTES, encoding="utf-8")
-    copy_static(timeline_root)
-    return timeline_root
+    return make_published_root(timeline_root)
+
+
+def make_content_root(dest, src=ROOT):
+    """src's content/ copied into dest, with a fixture episode state instead of the real one: Episode 001 in
+    production and no notes, whatever src's episodes.toml and content/episodes/ say, so that publishing a real
+    episode changes no fixture."""
+    episodes = str(src / "content" / "episodes")
+    shutil.copytree(src / "content", dest / "content", ignore=lambda folder, names: names if folder == episodes else [])
+    (dest / "content" / "episodes").mkdir(exist_ok=True)  # git does not track an empty folder
+    (dest / "content" / "episodes.toml").write_text(IN_PRODUCTION_EP1, encoding="utf-8")
+    return dest
+
+
+def make_timeline_root(root):
+    (root / "content" / "sources.bib").write_text(fixture_bib(), encoding="utf-8")
+    (root / "content" / "errata.md").write_text(fixture_errata(), encoding="utf-8")
+    (root / "content" / "timeline.toml").unlink(missing_ok=True)
+    return root
+
+
+def make_published_root(root):
+    (root / "content" / "episodes.toml").write_text(PUBLISHED_EP1 + EP1_SOURCE, encoding="utf-8")
+    (root / "content" / "episodes" / "001-x.md").write_text(NOTES, encoding="utf-8")
+    copy_static(root)
+    return root
 
 
 def copy_static(root):
