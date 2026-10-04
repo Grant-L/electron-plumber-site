@@ -15,6 +15,17 @@ verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-02"
 
+  [event.image]
+  file = "static/img/history/1843-hamilton-quaternions.webp"
+  alt = "William Rowan Hamilton in his fifties, head and shoulders, facing slightly right."
+  author = "Unknown photographer"
+  title = "Sir William Rowan Hamilton, head-and-shoulders portrait"
+  source_url = "https://commons.wikimedia.org/wiki/File:Sir_William_Rowan_Hamilton,_head-and-shoulders_portrait,_facing_slightly_right_LCCN90713420.jpg"
+  license = "public-domain"
+  width = 320
+  height = 400
+  caption = "Photographed at Fulneck, 1857 or 1859; published 1885."
+
   [[event.source]]
   key = "hamilton1865letter"
   kind = "primary"
@@ -32,6 +43,17 @@ thread = ["vortex-atoms", "ether", "topology-knots"]
 verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
+
+  [event.image]
+  file = "static/img/history/1867-kelvin-vortex-atoms.webp"
+  alt = "William Thomson in his forties, with a full dark beard, seated in an academic gown and holding papers."
+  author = "Thomas Annan"
+  title = "Sir William Thomson, Professor of Natural Philosophy"
+  source_url = "https://commons.wikimedia.org/wiki/File:Lord_Kelvin.jpg"
+  license = "public-domain"
+  width = 320
+  height = 382
+  caption = "Photograph published in 1871, in Memorials of the Old College of Glasgow."
 
   [[event.source]]
   key = "kelvin1867vortex"
@@ -52,6 +74,17 @@ verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
 
+  [event.image]
+  file = "static/img/history/1887-michelson-morley.webp"
+  alt = "Engraving of a large square stone slab carrying mirrors and a lamp, resting on a ring-shaped float above a brick pier."
+  author = "Albert A. Michelson and Edward W. Morley"
+  title = "On the Relative Motion of the Earth and the Luminiferous Ether, Fig. 3"
+  source_url = "https://commons.wikimedia.org/wiki/File:On_the_Relative_Motion_of_the_Earth_and_the_Luminiferous_Ether_-_Fig_3.png"
+  license = "public-domain"
+  width = 320
+  height = 200
+  caption = "Fig. 3 of Michelson and Morley's 1887 paper: the apparatus in perspective."
+
   [[event.source]]
   key = "michelson1887ether"
   kind = "primary"
@@ -70,6 +103,17 @@ thread = ["relativity", "electromagnetism"]
 verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
+
+  [event.image]
+  file = "static/img/history/1905-einstein-electrodynamics.webp"
+  alt = "Albert Einstein in his mid-twenties, in a checked suit, seated with one arm on a sloping desk."
+  author = "Unknown photographer (attributed to Lucien Chavan)"
+  title = "Albert Einstein im Patentamt Bern"
+  source_url = "https://commons.wikimedia.org/wiki/File:Albert_Einstein_ETH-Bib_Portr_05937.jpg"
+  license = "public-domain"
+  width = 320
+  height = 427
+  caption = "At the patent office in Bern, about 1904–05."
 
   [[event.source]]
   key = "einstein1905elektrodynamik"
@@ -90,6 +134,16 @@ verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
 
+  [event.image]
+  file = "static/img/history/1928-dirac-equation.webp"
+  alt = "Dirac's 1928 equation for the electron, written in his original notation."
+  author = "The Electron Plumber"
+  title = "Dirac's equation, 1928"
+  license = "own-work"
+  width = 320
+  height = 240
+  caption = "Dirac's equation in his original 1928 notation (eq. 9), typeset by us."
+
   [[event.source]]
   key = "dirac1928electron"
   kind = "primary"
@@ -108,6 +162,16 @@ thread = ["quantum", "g-factor"]
 verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
+
+  [event.image]
+  file = "static/img/history/1948-schwinger-moment.webp"
+  alt = "Modern diagram of an electron emitting and reabsorbing a photon while interacting with a magnetic field, labelled alpha over two pi."
+  author = "The Electron Plumber"
+  title = "Modern depiction"
+  license = "own-work"
+  width = 320
+  height = 240
+  caption = "Modern depiction of Schwinger's 1948 result, α/2π. His letter had no diagrams; Feynman first published his in 1949."
 
   [[event.source]]
   key = "schwinger1948moment"
@@ -128,6 +192,16 @@ verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
 
+  [event.image]
+  file = "static/img/history/2008-hanneke-electron-moment.webp"
+  alt = "Cross-section of a cylindrical trap: stacked ring electrodes around a single electron, with the magnetic field running vertically."
+  author = "The Electron Plumber"
+  title = "One electron in a trap"
+  license = "own-work"
+  width = 320
+  height = 240
+  caption = "Schematic, not to scale: a cylindrical Penning trap holding one electron, the kind used at Harvard in 2008."
+
   [[event.source]]
   key = "hanneke2008electron"
   kind = "primary"
@@ -146,6 +220,16 @@ thread = ["g-factor", "spin-and-moment"]
 verified = "primary"
 checked_by = "Historian"
 checked_date = "2026-10-03"
+
+  [event.image]
+  file = "static/img/history/2023-fan-electron-moment.webp"
+  alt = "Chart: the uncertainty in the electron's magnetic moment falling from 0.28 parts per trillion in 2008 to 0.13 in 2023."
+  author = "The Electron Plumber"
+  title = "How precisely we know g"
+  license = "own-work"
+  width = 320
+  height = 240
+  caption = "How precisely the electron's magnetic moment is known, 2008 to 2023."
 
   [[event.source]]
   key = "fan2023electron"
