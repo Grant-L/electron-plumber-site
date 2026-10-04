@@ -123,9 +123,10 @@ def test_without_a_doi_the_url_is_the_original(timeline_root, title, label):
     bib = fixture_bib().replace("title = {Fixture entry hamilton1865letter}", f"title = {{{title}}}")
     bib = bib.replace("  doi = {10.0000/fixture.hamilton1865letter}\n", "").replace("year = {2000},\n}", "year = {2000}\n}")
     (timeline_root / "content" / "sources.bib").write_text(bib, encoding="utf-8")
-    url = "https://www.maths.tcd.ie/pub/HistMath/People/Hamilton/Letters/BroomeBridge.html"
-    li = primary_li(render(timeline_root, with_source(EVENT, f'  url = "{url}"\n  fulltext_url = "{FULLTEXT}"\n')))
-    assert f'<a class="tl__read" href="{url}">{label}</a> &middot; <a href="{FULLTEXT}">Free full text</a>' in li
+    url = "https://archive.org/details/lifeofsirwilliam02gravuoft/page/434/mode/1up"
+    fulltext = "https://www.maths.tcd.ie/pub/HistMath/People/Hamilton/Letters/BroomeBridge.html"
+    li = primary_li(render(timeline_root, with_source(EVENT, f'  url = "{url}"\n  fulltext_url = "{fulltext}"\n')))
+    assert f'<a class="tl__read" href="{url}">{label}</a> &middot; <a href="{fulltext}">Free full text</a>' in li
     assert "doi" not in li
 
 

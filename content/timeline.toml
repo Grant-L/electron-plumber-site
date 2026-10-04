@@ -30,8 +30,8 @@ checked_date = "2026-10-02"
   [[event.source]]
   key = "hamilton1865letter"
   kind = "primary"
-  url = "https://www.maths.tcd.ie/pub/HistMath/People/Hamilton/Letters/BroomeBridge.html"
-  fulltext_url = "https://archive.org/details/lifeofsirwilliam02gravuoft/page/434/mode/1up"
+  url = "https://archive.org/details/lifeofsirwilliam02gravuoft/page/434/mode/1up"
+  fulltext_url = "https://www.maths.tcd.ie/pub/HistMath/People/Hamilton/Letters/BroomeBridge.html"
 
   [[event.further]]
   title = "Hamilton's Research on Quaternions"
