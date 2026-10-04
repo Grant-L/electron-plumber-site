@@ -519,7 +519,7 @@ GOLDEN_ERA_CHIPS = ('<div class="filter__chips" role="group" aria-label="Filter 
                     'data-value="all" aria-pressed="true">All eras</button><button class="chip" type="button" data-value="ether" '
                     'aria-pressed="false">Fields and ether</button></div>')
 AXIS_ATTRS = re.compile(r' data-(?:year|from|to)="[^"]*"')
-# Bytes. Raised with the site owner's approval when main measured site.js 17,493, gzip -9 6,385; site.css 29,908.
+# Bytes. Raised with the site owner's approval; measured with the back-button figure spacing in: site.js 17,493, gzip -9 6,385; site.css 30,117.
 # The gzip ceiling keeps the raw raise's proportion (6,400 x 19,000 / 17,500). Raising one
 # is a decision for the PR that needs it, not a test fix.
 JS_CEILING, JS_GZIP_CEILING, CSS_CEILING = 19_000, 6_950, 32_000
