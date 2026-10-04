@@ -17,7 +17,7 @@ Every build follows the brief-and-receipt pattern:
 
 ## Stack
 
-- Python 3.11 or later (`pyproject.toml`: `requires-python = ">=3.11"`; both workflows use 3.12). The build and the gate (`build.py`, `check.py`, `sitegen/`) use only the standard library. Tooling is separate: tests need `pytest` (unpinned), lint needs `ruff` (CI and the pre-commit hook both pin 0.15.12), and `make mark` needs `matplotlib`. Don't add runtime dependencies.
+- Python 3.11 or later (`pyproject.toml`: `requires-python = ">=3.11"`; both workflows use 3.12). The build and the gate (`build.py`, `check.py`, `sitegen/`) use only the standard library. Tooling is separate: tests need `pytest` (unpinned), lint needs `ruff` (CI and the pre-commit hook both pin 0.15.12), `make mark` needs `matplotlib`, and `make assets` needs Pillow 11.3 or later, `fonttools` and `brotli`. Don't add runtime dependencies.
 - `content/site.toml`: site-wide settings (title, author, site URL, links to YouTube and the two repos, tagline, contact address, newsletter endpoint, and `notes_path`, the folder in the notes repo that relative links in episode notes resolve against). Everything in it is public.
 - `content/episodes.toml`: one `[[episode]]` per announced episode. `status` (`in-production` or `published`) decides what the site says about it. A published episode needs `arc` (`historical`, `speculative` or `practical`), `youtube_id`, `date` and `excerpt`. Its optional `[[episode.source]]` tables (published only) take the same fields as `[[event.source]]`; a published historical episode needs at least one.
 - `content/episodes/<slug>.md`: episode notes, for **published** episodes only.
@@ -27,6 +27,7 @@ Every build follows the brief-and-receipt pattern:
 - `content/errata.md`: a verbatim copy of the notes repo's `ERRATA.md`, with one header comment naming the notes commit it came from, which must be the same commit as `content/sources.bib`. Re-copy both together; never edit entries here.
 - `sitegen/content.py`: loads `site.toml` and validates the episode data: the fields and values in `episodes.toml`, and that each notes file in `content/episodes/` pairs with a published episode and has `## ` sections. A bad entry stops the build with a message. It makes no promise that the Markdown inside a notes file renders correctly; see `sitegen/md.py`. `load_timeline` validates `content/timeline.toml` against `content/sources.bib` (parsed by `sitegen/bib.py`) and the episodes. `validate_episode_sources` checks `[[episode.source]]` against the bib, `load_errata` parses and validates `content/errata.md`, and `link_episodes` gives each live episode the events, claims and corrections that name it.
 - `tools/export_timeline.py`: the public-safe export into `content/timeline.toml`. Standard library only; `--check` exits 1 if the file would change.
+- `tools/make_assets.py`: makes the subset fonts in `static/fonts/` (EP Serif and EP Mono, renamed from Source Serif 4 and IBM Plex Mono as their OFL requires; downloads pinned, hash-checked upstream files) and the `.avif`/`.webp` copies of `static/img/field-bed.png` and `static/img/portrait.jpg`. It overwrites those tracked files; review the diff before committing.
 - `sitegen/pages.py`: page templates (markup and prose). An episode page shows its notes' `## ` sections, then Sources (`#ep-sources`), Claims (`#ep-claims`, one `#epNNN-cNN` anchor per claim), On the History page (`#ep-history`), and Corrections (`#corrections`, with `#cor-NNN` ledger rows that replace the notes' own Corrections text when there are any). A section with no data isn't rendered; `#corrections` always is. Everything on it is derived from `content/`.
 - `sitegen/html.py`: the page shell and shared components, `NAV`, and `RECORDS` (the Corrections page route).
 - `sitegen/md.py`: a small Markdown subset, and only that subset is supported:
@@ -45,7 +46,7 @@ Every build follows the brief-and-receipt pattern:
 
   Anything else outside the subset may render wrong without any error. Examples are indented code, reference-style links, an image mid-paragraph, and a table inside a blockquote or list item. So stick to the subset, and check the rendered page with `make serve` (or `make serve-drafts` for a draft).
 - `build.py`: routes. The pages are `/`, `/episodes/`, `/history/`, `/start/` (linked from Home and About, not in `NAV`), `/research/`, `/corrections/`, `/about/`, `/404.html`, and one page per published episode at `/episodes/<slug>/`. Short-link redirects are `/notes`, `/errata` (the notes repo's `ERRATA.md`), `/code`, `/letter`, `/yt`, and `/NNN` for each published episode. A drafts build adds the same page and `/NNN` link for each draft. `/feed.atom`, an Atom feed of published episodes (`sitegen/feed.py`; drafts never enter it). It also writes `sitemap.xml`, `robots.txt`, `CNAME` and `.nojekyll`.
-- `static/`: copied to the site root as is. Right now there's one stylesheet (`static/css/site.css`) and one script (`static/js/site.js`). Keep it that way.
+- `static/`: copied to the site root as is. Right now there's one stylesheet (`static/css/site.css`) and one script (`static/js/site.js`). Keep it that way. Fonts are self-hosted from `static/fonts/`; the page head preloads `fonts/ep-serif.woff2` (`FONT_PRELOAD` in `sitegen/html.py`), so keep that URL identical to its `@font-face` `src`. Don't add third-party font or asset requests.
 - `design/`: the mark (SVG and PNG) and `design/make_mark.py`, which draws it. The script writes into `design/mark/`. It also overwrites tracked brand files in `static/`: `favicon.svg`, `favicon.png`, `apple-touch-icon.png`, and `img/mark-hero.svg`, `img/mark-plate.svg`, `img/mark-small.svg` and `img/mark-banner-halo.svg`. Review that diff before committing.
 
 ## Commands
@@ -57,6 +58,7 @@ Every build follows the brief-and-receipt pattern:
 - `make lint`: `ruff check .`.
 - `make drafts` / `make serve-drafts`: build with unpublished notes from `_private/drafts/` into `_site_drafts/` and serve at http://localhost:4174. A draft renders only for an episode already listed in `content/episodes.toml` and not yet published. These builds are for local preview. The deploy workflow uploads `_site/` only; don't deploy `_site_drafts/` any other way.
 - `make mark`: redraw the mark, the favicons and the `static/img/mark-*.svg` files. Needs `matplotlib`.
+- `make assets`: remake the fonts and the AVIF/WebP images with `tools/make_assets.py`.
 - `make clean`: remove `_site/` and `_site_drafts/`.
 
 `.claude/launch.json` defines two preview servers for Claude Code, `site` (port 4173, `_site/`) and `drafts` (port 4174, `_site_drafts/`). They only serve; run `make build` or `make drafts` first.
@@ -77,13 +79,14 @@ See README, "Rules the build enforces". In short:
 - `[[episode.source]]` keys must be in `content/sources.bib`, and a published historical episode needs at least one. `content/errata.md` must be pinned to the same notes commit as `content/sources.bib`, and its entries must follow the notes repo's fixed format for published episodes (README, "Rules the build enforces").
 - Every built HTML page needs balanced tags, no duplicate ids, and a title. Every page except the short-link redirects also needs:
   - a meta description and exactly one `h1`;
-  - internal `href`/`src` targets (including `url()` in `style` attributes) that exist, and `#anchors` that exist on the target page;
+  - internal `href`/`src`/`srcset` targets (including `url()` in `style` attributes) that exist, and `#anchors` that exist on the target page;
   - no leftover placeholder in the page text: uppercase text in square brackets, like `[PLACEHOLDER]` or `[TODO: ...]`. `check.py --drafts` skips this one check; `make drafts` doesn't run the gate at all.
 
   On redirect pages, the per-page HTML checks stop after tags and title, so the gate doesn't verify that a `/NNN` redirect's target exists. The file-level scans below still cover redirect pages.
 - Spell out the framework's name: the gate looks for the three-letter acronym in page text, `<title>`, and the `alt`, `aria-label`, `title` and `content` attributes of every page except the redirects. The acronym is allowed only inside the repo name `AVE-Core`. Spell it out in other places too, even where the gate doesn't look.
+- Every `url()` in a built stylesheet that points inside the site must exist.
 - Every built `.atom` and `.xml` file must parse. The Atom feed needs `id`, `title`, `updated` and a `rel="self"` link; every `href` on the site's own origin must resolve, anchors included; and the text of `title`, `summary` and `subtitle` goes through the placeholder and acronym rules.
-- Every built `.jpg`, `.jpeg`, `.png` and `.webp` file is scanned for EXIF/XMP markers and refused if it has them. SVGs aren't scanned.
+- Every built `.jpg`, `.jpeg`, `.png`, `.webp` and `.avif` file is scanned for EXIF/XMP markers and refused if it has them. SVGs aren't scanned.
 - When the owner's private forbidden-terms list is available, every built file and every tracked file is checked against it (see below). If neither source of the list is available (a fork, or a machine without `_private/forbidden.txt`), `check.py` prints a warning and skips that one rule; that run has not checked it, so say so.
 
 ## Pull requests
@@ -102,12 +105,13 @@ In site copy, call the handouts "episode notes", never "lecture".
 
 ## Licenses
 
-From `LICENSING.md`. This repo holds three kinds of material, and they are licensed differently:
+From `LICENSING.md`. This repo holds four kinds of material, and they are licensed differently:
 
 | What | Where | License |
 |---|---|---|
 | Code: the generator, templates' markup and logic, checks, tests, CSS, JavaScript, workflows | `build.py`, `check.py`, `sitegen/`, `tools/`, `tests/`, `static/css/`, `static/js/`, `Makefile`, `.github/` | MIT (`LICENSE`) |
 | Written content: the site's copy, including the text inside the templates, and episode handouts | the prose in `sitegen/pages.py`, `content/` | CC BY-NC-ND 4.0, the same license as the notes repo |
+| Fonts: EP Serif and EP Mono, subset and renamed from Source Serif 4 and IBM Plex Mono | `static/fonts/` | SIL Open Font License 1.1 (`static/fonts/OFL.txt`) |
 | Brand: the name "The Electron Plumber", the mark (a Smith chart holding a trefoil) in every form, the banner image, the favicons and the social image | `design/`, `static/img/`, `static/favicon.*`, `static/apple-touch-icon.png` | All rights reserved. Not covered by the MIT license. |
 
 `sitegen/pages.py` falls under two licenses: its markup and logic are MIT, and its prose is CC BY-NC-ND 4.0. The research the site links to (Applied Vacuum Engineering) is in its own repository under Apache-2.0. Don't change license terms or move material between these categories.

@@ -1,5 +1,5 @@
 PY ?= python3
-.PHONY: build drafts check test lint serve serve-drafts mark clean
+.PHONY: build drafts check test lint serve serve-drafts mark assets clean
 
 build:            ## build the public site into _site/
 	$(PY) build.py
@@ -24,6 +24,9 @@ serve-drafts: drafts  ## http://localhost:4174
 
 mark:             ## regenerate the mark files and favicons (needs matplotlib)
 	$(PY) design/make_mark.py
+
+assets:           ## remake static/fonts/ and the AVIF/WebP images (needs Pillow 11.3+, fontTools, brotli; network for fonts)
+	$(PY) tools/make_assets.py
 
 clean:
 	rm -rf _site _site_drafts
