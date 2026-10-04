@@ -357,8 +357,8 @@ a.trow:hover .trow__name { color: var(--sky); }
   .contact__lead { width: auto; }
 }
 @media (max-width: 1180px) {
-  .footer__legal a { padding: 11px 8px; margin: -11px -8px; }
   .nav-toggle { display: flex; }
+  .footer__legal a { padding: 11px 8px; margin: -11px -8px; }
   .nav { display: none; position: absolute; left: 0; right: 0; top: 64px; z-index: 40; flex-direction: column; align-items: stretch; gap: 0; padding: 8px var(--pad) 24px; background: var(--bg); border-bottom: 1px solid var(--line); }
   .nav.is-open { display: flex; }
   .nav a:not(.btn) { height: 52px; border-bottom: 1px solid var(--line); border-top: 0; }
