@@ -31,8 +31,8 @@ sys.path.insert(0, str(ROOT))
 import check  # noqa: E402
 from sitegen import content  # noqa: E402
 
-EVENT_FIELDS = ("id", "date", "date_basis", "end", "circa", "not_before", "not_after", "title", "summary", "people", "era",
-                "class", "thread", "verified", "checked_by", "checked_date", "claims", "episodes", "related")
+EVENT_FIELDS = ("id", "date", "date_basis", "end", "circa", "not_before", "not_after", "title", "summary", "oneliner", "people",
+                "era", "class", "thread", "verified", "checked_by", "checked_date", "claims", "episodes", "related")
 SOURCE_FIELDS = ("key", "kind", "locator", "doi", "url", "note")
 GATE_FIELDS = ("link", "historian", "public")
 MD_STATUSES = {"confirmed-primary", "confirmed-secondary-only", "corrected", "rejected"}
@@ -208,7 +208,7 @@ def guard(events):
             raise ExportError(f"event {name}: carries a tracker-internal id; nothing written")
         if check.ACRONYM.search(block):
             raise ExportError(f"event {name}: the framework's name must be spelled out (three-letter acronym found); nothing written")
-        for key in ("title", "summary"):
+        for key in ("title", "summary", "oneliner"):
             if isinstance(event.get(key), str) and check.PLACEHOLDER.search(event[key]):
                 raise ExportError(f"event {name}: capitalised bracket in {key} (write [sic] in lowercase); nothing written")
         checked_by = event.get("checked_by")
