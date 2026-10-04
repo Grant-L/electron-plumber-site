@@ -62,6 +62,9 @@ def mono(text, mod=""):
 
 
 def badge(arc):
+    """No arc yet (an episode in production) shows no badge."""
+    if not arc:
+        return ""
     return f'<span class="badge badge--{arc}">{ARCS[arc]}</span>'
 
 

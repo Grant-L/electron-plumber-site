@@ -1,4 +1,5 @@
 import re
+import shutil
 from html.parser import HTMLParser
 
 import pytest
@@ -298,6 +299,18 @@ def test_a_draft_gets_no_corrections_but_its_timeline_links_render(timeline_root
     assert "ledger__row" not in page and 'name="robots" content="noindex"' in page
     history = pages.history(Ctx(site, episodes, "history/", "v", timeline=timeline))
     assert 'href="../episodes/001-x/#ep001-c03"' in history
+
+
+def test_a_drafts_build_of_an_episode_with_no_arc_yet_shows_no_badge(tmp_path, timeline_root):
+    """build.py --drafts with a fixture draft (in tmp_path, not the repo's _private/) for an episode with no arc."""
+    write(timeline_root, episodes=IN_PRODUCTION)
+    (timeline_root / "_private" / "drafts").mkdir(parents=True)
+    (timeline_root / "_private" / "drafts" / "001-x.md").write_text(NOTES, encoding="utf-8")
+    shutil.copytree(ROOT / "static", timeline_root / "static")
+    build.build(tmp_path / "out", drafts=True, root=timeline_root)
+    for page in ("index.html", "episodes/index.html", "episodes/001-x/index.html"):
+        assert 'badge--"' not in (tmp_path / "out" / page).read_text(encoding="utf-8")
+    assert "badge--" not in (tmp_path / "out" / "episodes" / "001-x" / "index.html").read_text(encoding="utf-8")
 
 
 def test_links_to_an_in_production_episode_drop_silently(timeline_root):
