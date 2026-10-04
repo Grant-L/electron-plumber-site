@@ -173,6 +173,6 @@ def static_png(name, px):
 favicon_svg()
 static_png("favicon", 144)
 static_png("apple-touch-icon", 180)
-for cut in ("hero", "plate", "small", "banner-halo"):
+for cut in ("plate", "small", "banner-halo"):
     (STATIC / "img" / f"mark-{cut}.svg").write_text((OUT / f"mark-{cut}.svg").read_text())
 print("site icons ok")

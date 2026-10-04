@@ -125,3 +125,16 @@ def test_the_question_is_cased_what_is_an_electron_everywhere(tmp_path):
         assert all(h == "What is an Electron?" for h in hits), page
         seen += len(hits)
     assert seen and "What is an electron?" not in (tmp_path / "site" / "index.html").read_text(encoding="utf-8")
+
+
+def test_the_unused_hero_mark_is_not_deployed(tmp_path):
+    import re
+    assert not (ROOT / "static" / "img" / "mark-hero.svg").exists()
+    build.build(tmp_path / "site")
+    for path in (tmp_path / "site").rglob("*"):
+        if path.is_file() and path.suffix in (".html", ".css", ".js", ".xml", ".atom", ".svg"):
+            assert "mark-hero" not in path.read_text(encoding="utf-8"), path
+    # make_mark.py needs matplotlib, so read it rather than import it.
+    script = (ROOT / "design" / "make_mark.py").read_text(encoding="utf-8")
+    copies = re.search(r'for cut in \(([^)]*)\):\n\s+\(STATIC / "img"', script)
+    assert copies and '"hero"' not in copies.group(1)
